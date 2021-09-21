@@ -1,6 +1,7 @@
 # rec
 
 I always forget what I do and how much time I spend for it, Rec helps me in this matter.
+
 Rec is a software that keeps track of daily records.
 Each record has an initial time, a duration, a description and tags; records are grouped in days.
 
