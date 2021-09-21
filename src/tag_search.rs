@@ -1,0 +1,471 @@
+
+pub use crate::recs::*;
+pub use crate::engine::*;
+use crate::styles::theme_str;
+use std::io::Error;
+use std::fmt;
+use chrono::Timelike;
+use std::default::Default;
+use orbtk::prelude::{PropertySource, IntoPropertySource};
+use plotters::prelude::*;
+use std::path::Path;
+
+
+// use plotters;
+// implementare tratti necessari per metter in GUI
+// Ordinare le impl
+// Correlazione è sbagliata
+
+// struct per le statisitche sulla durata, comprende anche la correlazione con H
+#[derive(Debug, PartialEq, Clone)]
+pub struct Tstats {
+    sum: Duration,
+    median: Duration,
+    mean: Duration,
+    std: Duration,
+    corr_h: f64,
+    hist: histogram<Duration>,
+}
+
+impl Tstats {
+    pub fn plot(&self, filename: &Path, plot_theme: &theme_str) -> Result<(),Error> {
+        self.hist.plot(filename, plot_theme).or(Err(err_inp("Error during histogram plotting")))?;
+        Ok(())
+    }
+}
+
+impl Default for Tstats {
+    fn default() -> Self {
+        Tstats {
+            sum: Duration::seconds(0),
+            median: Duration::seconds(0),
+            mean: Duration::seconds(0),
+            std: Duration::seconds(0),
+            corr_h: 0.0,
+            hist: histogram::default(),
+        }
+    }
+}
+
+impl fmt::Display for Tstats {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        writeln!(f,"Total duration: {}", WrapDuration(self.sum))?;
+        writeln!(f,"Stats:\n    median: {}",WrapDuration(self.median))?;
+        writeln!(f,"    mean: {}",WrapDuration(self.mean))?;
+        writeln!(f,"    std: {}",WrapDuration(self.std))?;
+        writeln!(f,"    H corr: {:.02}",self.corr_h)
+    }
+}
+
+// struct per le statisitche sull' ora di inizio
+#[derive(Debug, PartialEq, Clone, Default)]
+pub struct Hstats {
+    hist: histogram<NaiveTime>
+}
+
+impl Hstats {
+    pub fn plot(&self, filename: &Path, plot_theme: &theme_str) -> Result<(),Error> {
+        self.hist.plot(filename, plot_theme).or(Err(err_inp("Error during histogram plotting")))?;
+        Ok(())
+    }
+}
+
+// struct per gestire gli istogrammi
+// controllare la primitive per disegnare istogramma
+#[derive(Debug, PartialEq, Clone)]
+struct histogram<T> {
+    bins: Vec<T>,
+    count: Vec<u32>
+}
+
+impl<T> Default for histogram<T> {
+    fn default() -> Self {
+        histogram {
+            bins: Vec::<T>::new(),
+            count: Vec::<u32>::new(),
+        }
+    }
+}
+
+
+// Trait that let  multiplication u32 * f64 with the due truncations
+trait U32Mod {
+
+    fn times_f(&self, factor: f64) -> u32;
+
+}
+
+impl U32Mod for u32 {
+    fn times_f(&self, factor: f64) -> u32 {
+
+        (*self as f64 * factor) as u32
+    }
+
+}
+
+
+impl histogram<Duration> {
+    pub fn plot(&self, filename: &Path, plot_theme: &theme_str) -> Result<(),Box<dyn std::error::Error>> {
+        let root = BitMapBackend::new(filename, (400, 300)).into_drawing_area();
+        root.fill(&plot_theme.background)?;
+        println!("{:?}", self.bins);
+        println!("{:?}", self.count);
+        let x_range = std::ops::Range {
+            start: self.bins[0].num_minutes() - 15,
+            end: self.bins.last().unwrap().num_minutes() + 15};
+
+        let mut chart = ChartBuilder::on(&root)
+            .x_label_area_size(35)
+            .y_label_area_size(40)
+            .margin(5)
+            .caption("T histogram", ("sans-serif", 30.0, &plot_theme.caption))
+            .build_cartesian_2d(x_range, 0u32..self.count.iter().max().unwrap().times_f(1.2))?;
+
+        chart
+            .configure_mesh()
+            .disable_x_mesh()
+            .bold_line_style(&WHITE.mix(0.3))
+            .y_desc("Count")
+            .x_desc("Minutes")
+            .axis_desc_style(("sans-serif", 15, &plot_theme.label))
+            .axis_style(WHITE)
+            .label_style(("sans-serif", 15, &plot_theme.label))
+            .draw()?;
+
+        let data = self.bins.iter().map(|a| a.num_minutes()).zip(self.count.iter().map(|x: &u32| *x));
+
+        chart.draw_series(
+            Histogram::vertical(&chart)
+                .style(plot_theme.histogram.clone())
+                .margin(100/self.bins.len() as u32)
+                .data(data),
+        )?;
+
+        root.present()?;
+        println!("Result has been saved");
+
+        Ok(())
+
+
+    }
+}
+
+// Per ora precisione di un'ora, meglio fare bins dedicati (sopratutto per i pasti e le cose da sera)
+impl histogram<NaiveTime> {
+    pub fn plot(&self, filename: &Path, plot_theme: &theme_str) -> Result<(),Box<dyn std::error::Error>> {
+        let root = BitMapBackend::new(filename, (400, 300)).into_drawing_area();
+        root.fill(&plot_theme.background)?;
+        println!("{:?}", self.bins);
+        println!("{:?}", self.count);
+
+
+
+        let bins_h: Vec<u32> = self.bins.iter().map(|a| a.hour()).collect();
+        let x_range = std::ops::Range {
+            start: bins_h[0] - 1,
+            end: bins_h.last().unwrap() + 1};
+
+        let mut chart = ChartBuilder::on(&root)
+            .x_label_area_size(35)
+            .y_label_area_size(40)
+            .margin(5)
+            .caption("H histogram", ("sans-serif", 30.0, &plot_theme.caption))
+            .build_cartesian_2d(x_range, 0u32..self.count.iter().max().unwrap().times_f(1.2))?;
+
+        chart
+            .configure_mesh()
+            .disable_x_mesh()
+            .bold_line_style(&WHITE.mix(0.3))
+            .y_desc("Count")
+            .x_desc("Hour")
+            .axis_desc_style(("sans-serif", 15, &plot_theme.label))
+            .axis_style(WHITE)
+            .label_style(("sans-serif", 15, &plot_theme.label))
+            .draw()?;
+
+        let data = bins_h.iter().map(|a: &u32| *a).zip(self.count.iter().map(|x: &u32| *x));
+
+        chart.draw_series(
+            Histogram::vertical(&chart)
+                .style(plot_theme.histogram.clone())
+                .margin(100/self.bins.len() as u32)
+                .data(data),
+        )?;
+
+        root.present()?;
+        println!("Result has been saved");
+
+        Ok(())
+
+
+    }
+}
+
+// struct for temporal evolution chart
+#[derive(Debug, PartialEq, Clone)]
+pub struct Tchart {
+    dates: Vec<NaiveDate>,
+    durations: Vec<Duration>,
+    range: Duration,
+    median: Duration,
+    mean: Duration,
+    std: Duration,
+}
+
+impl Default for Tchart {
+    fn default() -> Tchart {
+        Tchart {
+        dates: Vec::<NaiveDate>::new(),
+        durations: Vec::<Duration>::new(),
+        range: Duration::zero(),
+        median: Duration::zero(),
+        mean: Duration::zero(),
+        std: Duration::zero(),
+        }
+    }
+}
+
+impl Tchart {
+    fn new(durs: &Vec<Duration>, dates: &Vec<NaiveDate>) -> Tchart {
+        let date_min = dates.iter().min().unwrap();
+        let date_max = dates.iter().max().unwrap();
+        let date_ax: Vec<NaiveDate> = date_min.iter_days().take_while(|a| a<=date_max).collect();
+        let n = date_ax.len();
+        let mut dur_ax = vec![Duration::zero(); n];
+        for (count, i) in dates.iter().enumerate() {
+            let eureka = date_ax.iter().enumerate().find(|(_bucket,value)| value==&i).unwrap().0;
+            dur_ax[eureka] = dur_ax[eureka] + durs[count];
+        }
+        let [median, mean, std] = chart_stats(&dur_ax);
+        println!("{:?}",dur_ax);
+        Tchart{
+            dates: date_ax,
+            durations: dur_ax,
+            range: *date_max - *date_min,
+            median,
+            mean,
+            std,
+        }
+    }
+
+    pub fn plot(&self, filename: &Path, plot_theme: &theme_str) -> Result<(),Box<dyn std::error::Error>> {
+        let root = BitMapBackend::new(filename, (800, 300)).into_drawing_area();
+        root.fill(&plot_theme.background)?;
+
+        let x_range = std::ops::Range {
+            start: self.dates[0],
+            end: *self.dates.last().unwrap()};
+
+        let y_range = std::ops::Range {
+            start: Duration::zero(),
+            end: *self.durations.iter().max().unwrap()};
+
+        let mut chart = ChartBuilder::on(&root)
+            .x_label_area_size(35)
+            .y_label_area_size(80)
+            .margin(5)
+            .caption("T timeseries", ("sans-serif", 30.0, &plot_theme.caption))
+            .build_cartesian_2d(x_range, y_range)?;
+
+        fn  y_formatter<'r>(a:&'r Duration)-> String {
+            format!("{}",WrapDuration(*a)).to_string()
+        }
+
+        chart
+            .configure_mesh()
+            .disable_y_mesh()
+            .y_desc("Duration")
+            .y_label_formatter(&y_formatter)
+            .x_desc("Days")
+            .axis_desc_style(("sans-serif", 15, &plot_theme.label))
+            .axis_style(WHITE)
+            .label_style(("sans-serif", 15, &plot_theme.label))
+            .draw()?;
+
+        let data =self.dates.iter().zip(self.durations.iter());
+
+
+
+        chart.draw_series(
+            LineSeries::new(data.map(|(a,b)| (*a,*b)), plot_theme.tchart_line.clone())
+        )?;
+
+        root.present()?;
+        println!("Result has been saved");
+
+        Ok(())
+
+
+    }
+
+}
+
+impl fmt::Display for Tchart {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        writeln!(f,"Daily stats:\n    median: {}",WrapDuration(self.median))?;
+        writeln!(f,"    mean: {}",WrapDuration(self.mean))?;
+        writeln!(f,"    std: {}",WrapDuration(self.std))
+    }
+}
+
+#[derive(Debug, PartialEq, Clone, Default)]
+pub struct TagAn {
+    pub t_stats: Tstats,
+    pub h_stats: Hstats,
+    pub rank_tags: Vec<Tagtime>,
+    pub t_chart: Tchart,
+}
+
+
+impl IntoPropertySource<TagAn> for TagAn {
+    fn into_source(self) -> PropertySource<TagAn> {
+        PropertySource::Value(self)
+    }
+}
+
+impl fmt::Display for TagAn {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        writeln!(f,"T stats:\n{}", &self.t_stats)
+    }
+}
+
+impl TagAn {
+
+    pub fn new(folder: &Path, query: &Query) -> Result<TagAn, Error> {
+        let found = search(folder, query)?;
+        let (mut durs, times, dates) = get_t_h_d(&found);
+        let t_chart = Tchart::new(&durs, &dates);
+        let (t_stats, h_stats) =  ht_new(&mut durs, &times);
+        let rank_tags = found.get_tagtimes().iter().take(10).cloned().collect();
+
+        Ok(TagAn {
+            t_stats,
+            h_stats,
+            rank_tags,
+            t_chart,
+        })
+    }
+}
+
+
+// Searching function
+fn search(folder: &Path, query: &Query) -> Result<Vec<Rec>,Error> {
+    let inp = Vec::from_folder(folder)?;
+    let search = inp.match_query(&query);
+    search.ok_or(err_inp("Results matching the tag(s) were not found"))
+
+}
+
+// Extracts durations, times and dates
+fn get_t_h_d(inp: &Vec<Rec>) -> (Vec<Duration>, Vec<NaiveTime>, Vec<NaiveDate>) {
+    let dur : Vec<Duration> = inp.iter().map(|a| a.t).collect();
+
+    let (dates, times) = inp.iter().map(|a| (a.h.unwrap().date(), a.h.unwrap().time())).unzip();
+    (dur, times, dates)
+}
+
+// Builder of Hstats and Tstats, all in one for redundancy avoiding
+fn ht_new(durs: &mut Vec<Duration>, times: &Vec<NaiveTime>) -> (Tstats, Hstats) {
+    let [n, sum, mean, std, corr] = stats_t(durs, times);
+    let n = n as i32;
+    let hist = t_hist(&durs, n);
+    durs.sort();
+    let med = match n%2 {
+        1 => durs[(n/2+1) as usize],
+        0 => (durs[(n/2) as usize]+durs[(n/2+1) as usize])/2,
+        _ => Duration::zero(),
+    };
+    (Tstats {
+        sum: Duration::seconds(sum as i64),
+        median: med,
+        mean: Duration::seconds(mean as i64),
+        std: Duration::seconds(std as i64),
+        corr_h: corr,
+        hist,
+    }, Hstats {
+        hist: h_hist(&times)
+    })
+
+}
+
+
+// Histograms
+
+// Check bin number appropriateness
+fn t_hist(inp: &Vec<Duration>, n: i32) -> histogram<Duration> {
+    let tmax = inp.iter().max().unwrap();
+    let tmin = inp.iter().min().unwrap();
+    let n_bins = n / 4_i32;
+    if n_bins == 0 { return histogram {
+        bins: vec![*tmax],
+        count: vec![inp.len() as u32],
+    }}
+    let div = (*tmax - *tmin) / n_bins;
+    let bins: Vec<Duration> = (0..n_bins).map(|a| div*a+*tmin).collect();
+    let mut count = vec![0_u32;n_bins as usize];
+    for i in inp.iter() {
+        let eureka = bins.iter().enumerate().rev().find(|(_bucket,value)| value<=&i).unwrap().0;
+        count[eureka]+=1;
+    }
+    histogram{
+        bins,
+        count,
+    }
+}
+
+fn h_hist(inp: &Vec<NaiveTime>) -> histogram<NaiveTime> {
+    let tmax = inp.iter().max().unwrap();
+    let tmin = inp.iter().min().unwrap();
+    let n_bins = (*tmax - *tmin).num_hours() as i32;
+    if n_bins == 0 { return histogram {
+        bins: vec![*tmax],
+        count: vec![inp.len() as u32],
+    }}
+    let bins: Vec<NaiveTime> = (0..n_bins).map(|a| *tmin + Duration::hours(1)*a).collect();
+    let mut count = vec![0_u32;n_bins as usize];
+    for i in inp.iter() {
+        let eureka = bins.iter().enumerate().rev().find(|(_bucket,value)| value<=&i).expect(&format!("Errore {:?}",i)).0;
+        count[eureka]+=1;
+    }
+    histogram{
+        bins,
+        count,
+    }
+}
+
+// Calcuates statistics for times
+fn stats_t(ts: &Vec<Duration>, hs: &Vec<NaiveTime>) -> [f64; 5] {
+    let n = ts.len() as f64;
+    let ts: Vec<f64> = ts.iter().map(|t| f64::from(t.num_seconds() as i32)).collect();
+    let hs: Vec<f64> = hs.iter().map(|h| (h.hour() * 3600 + h.minute()*60 +h.second()) as f64).collect();
+    let sum_t: f64 = ts.iter().sum();
+    let mean_t: f64 = sum_t/n;
+    let mut std_t: f64 = ts.iter().map(|h| h.powi(2)).sum::<f64>()/n-mean_t.powi(2);
+    std_t = std_t.sqrt();
+    let mean_h: f64 = hs.iter().sum::<f64>()/n;
+    let mut std_h: f64 = hs.iter().map(|h| h.powi(2)).sum::<f64>()/n-mean_h.powi(2);
+    std_h = std_h.sqrt();
+    let hs_norm: Vec<f64> = hs.iter().map(|h| (h-mean_h)/std_h).collect();
+    let corr = ts.iter().zip(hs_norm.iter()).map(|(a,b)| a*b).sum::<f64>()/std_t/n;
+    [n, sum_t, mean_t, std_t, corr]
+
+}
+
+// Results in [median, mean, std]
+fn chart_stats(inp: &Vec<Duration>) -> [Duration; 3] {
+    let n = inp.len() as f64;
+    let ts: Vec<f64> = inp.iter().map(|t| f64::from(t.num_seconds() as i32)).collect();
+    let sum_t: f64 = ts.iter().sum();
+    let mean_t: f64 = sum_t/n;
+    let mut std_t: f64 = ts.iter().map(|h| h.powi(2)).sum::<f64>()/n-mean_t.powi(2);
+    std_t = std_t.sqrt();
+    let mut inp_sort = inp.clone();
+    inp_sort.sort();
+    let n = n as i32;
+    let med = match n%2 {
+        1 => inp_sort[(n/2+1) as usize],
+        0 => (inp_sort[(n/2) as usize]+inp_sort[(n/2+1) as usize])/2,
+        _ => Duration::zero(),
+    };
+    [med, Duration::seconds(mean_t as i64), Duration::seconds(std_t as i64)]
+}
