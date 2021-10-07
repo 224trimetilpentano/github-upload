@@ -19,7 +19,7 @@ pub struct DayReport {
 }
 
 impl DayReport {
-    
+
     pub fn new(recs: &Vec<Rec>) -> Result<DayReport, Error> {
         let day = recs[0].h.ok_or(err_inp("Waking hour not found"))?.date();
         let bed = bed_time(recs)?;
@@ -27,7 +27,7 @@ impl DayReport {
         let ranking = recs.get_tagtimes();
         let selfs = get_self(recs);
         let shower = recs.match_query(&query_tag(String::from("Doccia"))).is_some();
-        
+
         Ok(DayReport {
             day,
             food,
@@ -37,7 +37,7 @@ impl DayReport {
             selfs,
         })
     }
-    
+
 }
 
 impl Default for DayReport {
@@ -83,7 +83,7 @@ impl fmt::Display for DayReport {
                                         .filter_map(|(count,x)| if count>10 {None} else {Some(x)})
                                         .fold(String::new(), |acc, x| acc + &format!("        {}",x));
         write!(f, "Tag ranking:\n       Time      Tag\n{}", &ranks)
-        
+
     }
 }
 
@@ -92,7 +92,7 @@ fn return_string(inp: &String, n_char: usize) -> String {
     let mut out = inp.clone();
     let a = out.len()/n_char;
     if a>1 {(1..a+1).collect::<Vec<usize>>().iter().for_each(|x| out.insert_str(find_space(&out,x*n_char),"\n      "))}
-    out  
+    out
 }
 // Find the last space before the usize
 fn find_space(inp: &String, id: usize) -> usize {
@@ -109,7 +109,7 @@ pub struct TotWeekReport {
 impl TotWeekReport {
     pub fn  new(recs: &Vec<Rec>, selfs: usize) -> Result<TotWeekReport, Error> {
         let ranking = recs.get_tagtimes();
-               
+
         Ok(TotWeekReport {
             ranking,
             selfs,
@@ -125,7 +125,7 @@ impl fmt::Display for TotWeekReport {
                                         .filter_map(|(count,x)| if count>25 {None} else {Some(x)})
                                         .fold(String::new(), |acc, x| acc + &format!("        {}",x));
         write!(f, "Tag ranking:\n       Time      Tag\n{}", &ranks)
-        
+
     }
 }
 
@@ -138,14 +138,15 @@ pub struct WeekReport {
 }
 
 impl WeekReport {
-    
+
     pub fn new(folder: &Path, n_week: i64) -> Result<WeekReport, Error> {
 
         let today =chrono::offset::Local::today().naive_local();
         let starting_day = today+Duration::days(-7);
-        let inp = Vec::from_folder(folder)?;
+        let mut inp = Vec::from_folder(folder)?;
+        inp.flatten();
         let last_week = retrieve_days(&inp, n_week);
-        
+
         let day_reports: Vec<Option<DayReport>> = last_week.iter().map(|a| day_builder(a)).collect::<Vec<Option<DayReport>>>();
         let days: Vec<NaiveDate> = (0..7).map(|a| starting_day+Duration::days(a)).collect::<Vec<NaiveDate>>();
         let n_selfs= day_reports.iter().filter(|a| a.is_some()).filter(|a| a.as_ref().unwrap().selfs.is_some()).count();
@@ -154,7 +155,7 @@ impl WeekReport {
         days,
         day_reports,
         tot_report,
-        })     
+        })
     }
 }
 
@@ -182,8 +183,8 @@ fn retrieve_days<'a>(inp: &Vec<Rec>, n_week: i64) -> Vec<Option<Vec<Rec>>> {
     let mut out: Vec<Option<Vec<Rec>>> =Vec::new();
     for i in 0..7 {
         let day_iter=today+Duration::days(i-7+n_week*7);
-        query.days = Some([day_iter,day_iter]);        
-        out.push(inp.match_query(&query));     
+        query.days = Some([day_iter,day_iter]);
+        out.push(inp.match_query(&query));
         if out.last().is_none() {println!("Missing data for {:?}",day_iter)};
     }
     out
@@ -203,8 +204,8 @@ fn match_food(inp: &Vec<Rec>) -> Option<Vec<String>> {
     let rec_food = if let Some(a)=inp.match_mult_query(&querys) {a} else {return None};
     let food = rec_food.iter().filter_map(|a| a.description.clone()).collect();
     Some(food)
-    
-    
+
+
 }
 
 
@@ -222,7 +223,7 @@ fn bed_time(recs: &Vec<Rec>) -> Result<[NaiveTime; 2], Error> {
     let b2 =recs.last().unwrap();
     let b2= b2.h.ok_or(err_inp("Sleep hour not found"))?.time()+b2.t;
     Ok([b1, b2])
-    
+
 }
 
 
@@ -244,11 +245,6 @@ fn day_builder(inp: &Option<Vec<Rec>>) -> Option<DayReport> {
 fn tot_builder(inp: &Vec<Rec>, n_selfs: usize, today: &NaiveDate) -> Result<TotWeekReport, Error> {
     let mut q_last =Query::new();
     q_last.days = Some([*today+Duration::days(-7),*today]);
-    Ok(TotWeekReport::new(&inp.match_query(&q_last).ok_or(err_inp("Data not found for the last week"))?, 
+    Ok(TotWeekReport::new(&inp.match_query(&q_last).ok_or(err_inp("Data not found for the last week"))?,
                     n_selfs)?)
 }
-
-
-
-
-
