@@ -247,8 +247,16 @@ impl RecMatch for Vec<Rec> {
     }
 
     fn flatten(&mut self) {
-        let mut children: Vec<Rec> = self.iter_mut().filter_map(|a| a.flatten()).flatten().collect();
-        self.append(&mut children);
+        let (children, pos) : ( Vec<Vec<Rec>>, Vec<usize>) = self.iter_mut().enumerate()
+                                        .filter_map(|(counts, a)| a.flatten().zip(Some(counts)))
+                                        .unzip();
+        for (count,unders) in children.iter().enumerate() {
+            let index = pos[count];
+            for i in unders.iter() {
+                self.insert(index, i.clone());
+            }
+        }
+
     }
 
 }
