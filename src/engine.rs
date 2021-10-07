@@ -1,4 +1,4 @@
-    
+
 //Tests!!!
 // Per una ricerca "lazy" (che cerca solo le chiavi Some()) sarebbe necessaria una funzione match dinamica, richiede tempo per implementare
 // Query funzioni utili (giorni da oggi, durata da 0, durata a partire da etc..)
@@ -67,7 +67,7 @@ impl Ord for Tagtime {
 }
 
 impl PartialOrd for Tagtime {
-    
+
     fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
         self.1.partial_cmp(&other.1)
     }
@@ -84,7 +84,7 @@ impl fmt::Display for Tagtime {
         writeln!(f,"{} , {:?},", WrapDuration(self.1),  &self.0)
     }
 }
- 
+
 // Base
 
 fn is_between<T: PartialOrd>(ins: &T, out: &[T;2]) -> bool {
@@ -97,7 +97,7 @@ fn match_day(q: &Query, r: &Rec) -> bool {
         Some(a) => match &r.h {
             None => false,
             Some(b) => is_between(&b.date(),a)
-        }, 
+        },
     }
 }
 
@@ -107,7 +107,7 @@ fn match_h(q: &Query, r: &Rec) -> bool {
         Some(a) => match &r.h {
             None => false,
             Some(b) => is_between(&b.time(),a)
-        }, 
+        },
     }
 }
 
@@ -175,42 +175,45 @@ fn matcher_mult(r: &Rec, vq: &Vec<Query>) -> bool {
 
 pub trait RecMatch {
     fn match_query(&self, q: &Query) -> Option<Vec<Rec>>;
-    
+
     fn match_mult_query(&self, q: &Vec<Query>) -> Option<Vec<Rec>>;
-    
+
     /// Get the tags with total duration (in tagtime type), sorted by decreasing total duration
     fn get_tagtimes(&self) -> Vec<Tagtime>;
-    
+
     /// Retrieve time entries for a tag
     fn get_times_from_tag(&self, tag: &String) -> Option<Vec<Duration>>;
 
     /// Retrieve all tags
     fn get_tags(&self) -> Option<Vec<&String>>;
 
-    fn get_unders(&self) -> Option<Vec<&Rec>>;
+    fn get_unders(&self) -> Option<Vec<Rec>>;
+
+    fn flatten(&mut self);
+
 }
 
 impl RecMatch for Vec<Rec> {
-    
+
     fn match_query(&self, q: &Query) -> Option<Vec<Rec>> {
         let out: Vec<Rec>= self.iter().filter(|a| matcher(a,q)).map(|a| a.clone()).collect();
-        if out.is_empty() {None} else {Some(out)} 
-    } 
-    
-    
+        if out.is_empty() {None} else {Some(out)}
+    }
+
+
     fn match_mult_query(&self, q: &Vec<Query>) -> Option<Vec<Rec>> {
         let out: Vec<Rec>= self.iter().filter(|a| matcher_mult(a,q)).map(|a| a.clone()).collect();
-        if out.is_empty() {None} else {Some(out)} 
-    } 
- 
+        if out.is_empty() {None} else {Some(out)}
+    }
+
     fn get_times_from_tag(&self, tag: &String) -> Option<Vec<Duration>> {
         let search = self.iter().filter(|a| a.tags.is_some()).filter(|a| a.tags.as_ref().unwrap().contains(tag));
         let times: Vec<Duration> = search.map(|a| a.t).collect();
         if times.is_empty() {None} else {Some(times)}
-        
+
     }
 
-    
+
     fn get_tagtimes(&self) -> Vec<Tagtime> {
         let tags = if let Some(a) = self.get_tags() {a} else {return Vec::new()};
         let mut out = Vec::new();
@@ -237,10 +240,15 @@ impl RecMatch for Vec<Rec> {
         }
         if out.is_empty() {None} else {Some(out)}
     }
-    
-    fn get_unders(&self) -> Option<Vec<&Rec>> {
-        let tot: Vec<&Rec>= self.iter().filter_map(|a| a.unders.as_ref()).flatten().collect();
+
+    fn get_unders(&self) -> Option<Vec<Rec>> {
+        let tot: Vec<Rec>= self.iter().filter_map(|a| a.children.as_ref()).flatten().cloned().collect();
         if tot.is_empty() {None} else {Some(tot)}
     }
-              
+
+    fn flatten(&mut self) {
+        let mut children: Vec<Rec> = self.iter_mut().filter_map(|a| a.flatten()).flatten().collect();
+        self.append(&mut children);
+    }
+
 }

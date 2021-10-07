@@ -18,14 +18,13 @@ pub struct Rec {
     pub t: Duration,
     pub description: Option<String>,
     pub tags: Option<Vec<String>>,
-    pub unders: Option<Vec<Rec>>,
+    pub children: Option<Vec<Rec>>,
 }
 
 
 pub fn rec_folder() -> String {
     String::from("C:\\Users\\bonal\\OneDrive\\Desktop\\RecordTime")
 }
-
 
 
 
@@ -49,7 +48,7 @@ fn parse_dur(inp: &String) -> Result<Duration,Error> {
     let t_id = inp.find("T").ok_or(err_inp("Could not find 'T'"))?;
     let inp_cut = inp.get(t_id..t_id+7).ok_or(err_inp("Not enough digits for T parsing"))?.to_string();
     let t_div = inp_cut.find(".").ok_or(err_inp("Could not find the dot for T parsing"))?;
-    let seconds = inp_cut[t_div-2..t_div].parse::<u64>().or(Err(err_inp("Invalid digits for T parsing")))? * 3600 
+    let seconds = inp_cut[t_div-2..t_div].parse::<u64>().or(Err(err_inp("Invalid digits for T parsing")))? * 3600
                 + inp_cut[t_div+1..t_div+3].parse::<u64>().or(Err(err_inp("Invalid digits for T parsing")))? * 60;
     let h = Duration::from_std(stdDuration::from_secs(seconds)).or(Err(err_inp("Invalid duration")))?;
     Ok(h)
@@ -71,9 +70,9 @@ fn get_des(inp: &String) -> Result<Option<String>, Error> {
     match inp.find("'") {
         Some(a) => return Ok(Some(inp[a+1..inp.rfind("'").ok_or(err_inp("Could not find the second ' for description"))?].to_string())),
         None => return Ok(None),
-        
+
     }
-    
+
 }
 
 // Implementations
@@ -83,33 +82,48 @@ impl Rec {
     /// COnstructor for Rec
     pub fn new(inp: String, day: &NaiveDate) -> Result<Rec,Error> {
         let mut iter = inp.split("/");
-        
+
         let main_str = iter.next().unwrap().to_string();
 
-        let mut unders : Vec<Rec> = Vec::new();
+        let mut children : Vec<Rec> = Vec::new();
         let mut counts = 0;
+        let h = Some(day.and_time(parse_time(&main_str)?));
         for i in iter.map(|s| s.to_string()) {
-            
-            unders.push(Rec{
-                h : None,
+
+            children.push(Rec{
+                h ,
                 t : parse_dur(&i)?,
                 description: get_des(&i)?,
                 tags: get_tag(&i),
-                unders: None,
-                
+                children: None,
+
             }) ;
             counts+=1;
         }
-        
+
         let a =  Rec {
-            h: Some(day.and_time(parse_time(&main_str)?)),
+            h ,
             t: parse_dur(&main_str)?,
             description: get_des(&main_str)?,
             tags: get_tag(&main_str),
-            unders: if counts==0 { None } else {Some(unders)},
+            children: if counts==0 { None } else {Some(children)},
         };
         Ok(a)
     }
+
+    pub fn flatten(&mut self) -> Option<Vec<Rec>> {
+        let children = self.children.clone();
+        if let Some(a) = children {
+            for i in a.iter() {
+                self.t = self.t - i.t;
+            }
+            self.children = None;
+            Some(a)
+        } else {
+            None
+        }
+    }
+
 }
 
 fn error_print(r: Result<Rec,Error>, n: usize, d: u32) -> Option<Rec> {
@@ -135,9 +149,9 @@ fn read_day(count: usize, day: &str, file_name: &Vec<u32>) -> Option<Vec<Rec>> {
 
 
 pub trait RecBuilder {
-    
+
     fn from_file(path: &Path) -> Result<Vec<Rec>, Error>;
-    
+
     fn from_folder(path: &Path) -> Result<Vec<Rec>, Error>;
 }
 
@@ -145,19 +159,19 @@ pub trait RecBuilder {
 
 /// Constructor for Vec<Rec> from files and folders
 impl RecBuilder for Vec<Rec> {
-        
+
     fn from_file(path: &Path) -> Result<Vec<Rec>, Error> {
         let file_name = path.file_name().unwrap().to_str().unwrap().split(".").next().unwrap();
         let file_name : Vec<u32> = file_name.split("-")
                                             .map(|a| a.parse::<u32>().expect("Invalid filename"))
                                             .collect();
-                                            
+
         let out: Vec<Rec>= read_to_string(path)?.split("|").enumerate()
                                                 .filter_map(|(count,day)| read_day(count,day,&file_name))
                                                 .flatten().collect();
         Ok(out)
     }
-    
+
     fn from_folder(path: &Path) -> Result<Vec<Rec>, Error> {
         let files = path.read_dir().expect("read_dir failed");
         let mut out = Vec::new();
@@ -183,44 +197,44 @@ mod tests {
     use std::time::Duration as stdDuration;
     use chrono::{NaiveDate, NaiveTime, Duration};
     use super::*;
-    
+
     // Test basics
-    #[test] 
+    #[test]
     fn parse_time_should() {
         let out = parse_time(&String::from("H 09.45 T 00.20 'ahah' #test1 #test2 ")).unwrap();
         assert_eq!(out, NaiveTime::from_hms(9,45,0));
-        
+
     }
-    
+
     #[test]
     fn parse_dur_should() {
         let out = parse_dur(&String::from("H 09.45 T 00.10 'ahah' #test1 #test2 ")).unwrap();
         assert_eq!(out, Duration::from_std(stdDuration::from_secs(600)).unwrap());
-        
+
     }
-    
+
     #[test]
     fn get_des_should() {
         let out = get_des(&String::from(" H 09.45 T 00.10 'ahah' #test1 #test2 ")).unwrap();
         assert_eq!(out, Some(String::from("ahah")));
-        
+
         let out = get_des(&String::from(" H 09.45 T 00.10 #test1 #test2 ")).unwrap();
         assert_eq!(out, None);
-        
+
     }
-    
-    
+
+
     #[test]
     fn get_tag_should() {
         let out = get_tag(&String::from(" H 09.45 T 00.10 'ahah' #test1 #test2 "));
         assert_eq!(out, Some(vec![String::from("test1"), String::from("test2")]));
-        
+
         let out = get_tag(&String::from(" H 09.45 T 00.10 'ahah' "));
         assert_eq!(out, None);
-        
-        
+
+
     }
-    
+
     // Test complete
     #[test]
     fn rec_new_should() {
@@ -232,21 +246,21 @@ mod tests {
             t: Duration::from_std(stdDuration::from_secs(300)).unwrap(),
             description: Some(String::from("Test1")),
             tags: Some(vec![String::from("test1"), String::from("test2")]),
-            unders: None,
+            children: None,
         };
         let under_np = crate::recs::Rec{
             h: None,
             t: Duration::from_std(stdDuration::from_secs(6300)).unwrap(),
             description: Some(String::from("Test2")),
             tags: Some(vec![String::from("test1"), String::from("test2")]),
-            unders: None,
+            children: None,
         };
         let should_out = crate::recs::Rec {
             h: Some(NaiveDateTime::new(day, NaiveTime::from_hms(07,30,00))),
             t: Duration::from_std(stdDuration::from_secs(9000)).unwrap(),
             description: Some(String::from("Test")),
             tags: Some(vec![String::from("test1"), String::from("test2")]),
-            unders: Some(vec![under_p, under_np]),
+            children: Some(vec![under_p, under_np]),
         };
         assert_eq!(res,should_out);
     }
