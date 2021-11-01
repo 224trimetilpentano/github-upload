@@ -73,7 +73,7 @@ impl fmt::Display for DayReport {
         writeln!(f, "{}\n  \n", disp_weekday(&self.day.weekday()))?;
         writeln!(f, "Woke up at: {:?} \nWent to sleep at: {:?}\n \n", &self.bed[0], &self.bed[1])?;
         let food_str = &self.food.as_ref().or(Some(&vec!["No food recorded".to_string()])).unwrap()
-                            .iter().fold(String::new(), |acc, x| acc + &return_string(x,25) + "\n    ");
+                            .iter().fold(String::new(), |acc, x| acc + &return_string(x,20) + "\n    ");
         writeln!(f, "Food eaten:\n  {}", &food_str)?;
         let selfs = &self.selfs.as_ref().or(Some(&vec!["No selfs recorded".to_string()])).unwrap()
                             .iter().fold(String::new(), |acc, x| acc + x + "\n    ");
