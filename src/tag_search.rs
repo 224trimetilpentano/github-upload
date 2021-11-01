@@ -335,9 +335,9 @@ impl fmt::Display for TagAn {
 impl TagAn {
 
     pub fn new(folder: &Path, query: &Query, cut: bool) -> Result<TagAn, Error> {
-        let found = search(folder, query)?;
+        let mut found = search(folder, query)?;
         if cut {
-            let found = cut_children();
+            found.cut_children();
         }
         let n_rec = found.len();
         let last = found[n_rec-5..n_rec].iter().cloned().map(|a| a.description.unwrap_or(String::from(""))).rev().collect();

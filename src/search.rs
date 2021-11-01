@@ -51,7 +51,7 @@ impl State for SearchState {
                 Action::Search => {
                     let plot_theme = styles::theme::Dark.get();
                     let query = query_builder(ctx);
-                    let tagan = TagAn::new(Path::new(&rec_folder()),&query);
+                    let tagan = TagAn::new(Path::new(&rec_folder()),&query, true);
                     if let Ok(tagan) = tagan {
                         let grid_en =ctx.child("grid").entity();
                         ctx.clear_children_of(grid_en);
