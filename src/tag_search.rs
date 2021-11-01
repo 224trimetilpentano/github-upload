@@ -310,10 +310,12 @@ impl fmt::Display for Tchart {
 
 #[derive(Debug, PartialEq, Clone, Default)]
 pub struct TagAn {
+    pub n_rec: usize,
     pub t_stats: Tstats,
     pub h_stats: Hstats,
     pub rank_tags: Vec<Tagtime>,
     pub t_chart: Tchart,
+    pub last: Vec<String>,
 }
 
 
@@ -325,24 +327,33 @@ impl IntoPropertySource<TagAn> for TagAn {
 
 impl fmt::Display for TagAn {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        writeln!(f,"T stats:\n{}", &self.t_stats)
+        writeln!(f,"T stats for {} records:", &self.n_rec)?;
+        writeln!(f,"{}", &self.t_stats)
     }
 }
 
 impl TagAn {
 
-    pub fn new(folder: &Path, query: &Query) -> Result<TagAn, Error> {
+    pub fn new(folder: &Path, query: &Query, cut: bool) -> Result<TagAn, Error> {
         let found = search(folder, query)?;
+        if cut {
+            let found = cut_children();
+        }
+        let n_rec = found.len();
+        let last = found[n_rec-5..n_rec].iter().cloned().map(|a| a.description.unwrap_or(String::from(""))).rev().collect();
         let (mut durs, times, dates) = get_t_h_d(&found);
         let t_chart = Tchart::new(&durs, &dates);
         let (t_stats, h_stats) =  ht_new(&mut durs, &times);
         let rank_tags = found.get_tagtimes().iter().take(10).cloned().collect();
 
         Ok(TagAn {
+            n_rec,
             t_stats,
             h_stats,
             rank_tags,
             t_chart,
+            last,
+
         })
     }
 }

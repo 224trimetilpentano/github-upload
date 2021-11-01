@@ -191,6 +191,8 @@ pub trait RecMatch {
 
     fn flatten(&mut self);
 
+    fn cut_children(&mut self);
+
 }
 
 impl RecMatch for Vec<Rec> {
@@ -244,6 +246,10 @@ impl RecMatch for Vec<Rec> {
     fn get_unders(&self) -> Option<Vec<Rec>> {
         let tot: Vec<Rec>= self.iter().filter_map(|a| a.children.as_ref()).flatten().cloned().collect();
         if tot.is_empty() {None} else {Some(tot)}
+    }
+
+    fn cut_children(&mut self) {
+        self.iter_mut().filter_map(|a| a.flatten());
     }
 
     fn flatten(&mut self) {

@@ -85,6 +85,16 @@ impl State for SearchState {
                         let mut ranking = tagan.rank_tags.iter().fold(String::new(), |acc, a| acc + format!("\n {}",a).as_str());
                         ranking = String::from("Tag ranking:\n") + &ranking;
                         block_builder(&ranking, ctx, stack_rank);
+                        ctx.append_child_to(Stack::new()
+                                                    .orientation(Orientation::Vertical)
+                                                    .spacing(5.0)
+                                                    .v_align("center")
+                                                    .id("stack_last")
+                                                    .attach(Grid::column(3))
+                                                    .attach(Grid::row(1)),grid_en);
+                        let stack_last = ctx.child("stack_last").entity();
+                        let last = tagan.last.iter().fold(String::from("Last records:\n"),|a, b| a + "\n" + b);
+                        block_builder(&last, ctx, stack_last);
                         // plots
                         tagan.t_stats.plot(&Path::new("C:\\Users\\bonal\\OneDrive\\Desktop\\Codice\\Rust\\rec\\TEMP\\T_hist.png"), &plot_theme);
                         tagan.h_stats.plot(&Path::new("C:\\Users\\bonal\\OneDrive\\Desktop\\Codice\\Rust\\rec\\TEMP\\H_hist.png"), &plot_theme);
@@ -174,6 +184,8 @@ impl Template for SearchView {
         self.name("SearchView")
             .result(TagAn::default())
             .date1(chrono::offset::Local::today().naive_local().format("%Y/%m/%d").to_string())
+            .date0((chrono::offset::Local::today().naive_local()-Duration::days(10))
+                        .format("%Y/%m/%d").to_string())
             .child(Stack::new().orientation(Orientation::Vertical)
                 .child(TextBlock::new().text("Search").font_size(20.0).build(ctx))
                 .child(Stack::new().orientation(Orientation::Horizontal)
