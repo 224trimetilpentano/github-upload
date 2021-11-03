@@ -249,7 +249,10 @@ impl RecMatch for Vec<Rec> {
     }
 
     fn cut_children(&mut self) {
-        self.iter_mut().filter_map(|a| a.flatten());
+        for i in self.iter_mut() {
+            i.flatten();
+        }
+
     }
 
     fn flatten(&mut self) {

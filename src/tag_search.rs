@@ -340,7 +340,7 @@ impl TagAn {
             found.cut_children();
         }
         let n_rec = found.len();
-        let last = found[n_rec-5..n_rec].iter().cloned().map(|a| a.description.unwrap_or(String::from(""))).rev().collect();
+        let last = found.iter().rev().take(5).cloned().map(|a| a.description.unwrap_or(String::from(""))).collect();
         let (mut durs, times, dates) = get_t_h_d(&found);
         let t_chart = Tchart::new(&durs, &dates);
         let (t_stats, h_stats) =  ht_new(&mut durs, &times);
@@ -381,11 +381,16 @@ fn ht_new(durs: &mut Vec<Duration>, times: &Vec<NaiveTime>) -> (Tstats, Hstats) 
     let n = n as i32;
     let hist = t_hist(&durs, n);
     durs.sort();
-    let med = match n%2 {
-        1 => durs[(n/2+1) as usize],
-        0 => (durs[(n/2) as usize]+durs[(n/2+1) as usize])/2,
-        _ => Duration::zero(),
-    };
+    let med: Duration;
+    if n == 1 {
+        med = durs[0];
+    } else {
+        med = match n%2 {
+            1 => durs[(n/2+1) as usize],
+            0 => (durs[(n/2) as usize]+durs[(n/2+1) as usize])/2,
+            _ => Duration::zero(),
+        };
+    }
     (Tstats {
         sum: Duration::seconds(sum as i64),
         median: med,
@@ -465,6 +470,9 @@ fn stats_t(ts: &Vec<Duration>, hs: &Vec<NaiveTime>) -> [f64; 5] {
 // Results in [median, mean, std]
 fn chart_stats(inp: &Vec<Duration>) -> [Duration; 3] {
     let n = inp.len() as f64;
+    if n==1.0 {
+        return [inp[0],inp[0],Duration::seconds(0)]
+    }
     let ts: Vec<f64> = inp.iter().map(|t| f64::from(t.num_seconds() as i32)).collect();
     let sum_t: f64 = ts.iter().sum();
     let mean_t: f64 = sum_t/n;

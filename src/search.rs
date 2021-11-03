@@ -1,3 +1,4 @@
+// Default 10 days before
 
 use orbtk::prelude::*;
 use crate::tag_search::*;
@@ -96,24 +97,26 @@ impl State for SearchState {
                         let last = tagan.last.iter().fold(String::from("Last records:\n"),|a, b| a + "\n" + b);
                         block_builder(&last, ctx, stack_last);
                         // plots
-                        tagan.t_stats.plot(&Path::new("C:\\Users\\bonal\\OneDrive\\Desktop\\Codice\\Rust\\rec\\TEMP\\T_hist.png"), &plot_theme);
-                        tagan.h_stats.plot(&Path::new("C:\\Users\\bonal\\OneDrive\\Desktop\\Codice\\Rust\\rec\\TEMP\\H_hist.png"), &plot_theme);
-                        tagan.t_chart.plot(&Path::new("C:\\Users\\bonal\\OneDrive\\Desktop\\Codice\\Rust\\rec\\TEMP\\T_chart.png"), &plot_theme);
-                        ctx.append_child_to(ImageWidget::new()
-                                .id("T_stats")
-                                .image("C:\\Users\\bonal\\OneDrive\\Desktop\\Codice\\Rust\\rec\\TEMP\\T_hist.png")
-                                .attach(Grid::column(1))
-                                .attach(Grid::row(0)),grid_en);
-                        ctx.append_child_to(ImageWidget::new()
-                                .id("H_stats")
-                                .image("C:\\Users\\bonal\\OneDrive\\Desktop\\Codice\\Rust\\rec\\TEMP\\H_hist.png")
-                                .attach(Grid::column(2))
-                                .attach(Grid::row(0)),grid_en);
-                        ctx.append_child_to(ImageWidget::new()
-                                .id("T_chart")
-                                .image("C:\\Users\\bonal\\OneDrive\\Desktop\\Codice\\Rust\\rec\\TEMP\\T_chart.png")
-                                .attach(Grid::column(1))
-                                .attach(Grid::row(1)),grid_en);
+                        if tagan.n_rec != 1 {
+                            tagan.t_stats.plot(&Path::new("C:\\Users\\bonal\\OneDrive\\Desktop\\Codice\\Rust\\rec\\TEMP\\T_hist.png"), &plot_theme);
+                            tagan.h_stats.plot(&Path::new("C:\\Users\\bonal\\OneDrive\\Desktop\\Codice\\Rust\\rec\\TEMP\\H_hist.png"), &plot_theme);
+                            tagan.t_chart.plot(&Path::new("C:\\Users\\bonal\\OneDrive\\Desktop\\Codice\\Rust\\rec\\TEMP\\T_chart.png"), &plot_theme);
+                            ctx.append_child_to(ImageWidget::new()
+                                    .id("T_stats")
+                                    .image("C:\\Users\\bonal\\OneDrive\\Desktop\\Codice\\Rust\\rec\\TEMP\\T_hist.png")
+                                    .attach(Grid::column(1))
+                                    .attach(Grid::row(0)),grid_en);
+                            ctx.append_child_to(ImageWidget::new()
+                                    .id("H_stats")
+                                    .image("C:\\Users\\bonal\\OneDrive\\Desktop\\Codice\\Rust\\rec\\TEMP\\H_hist.png")
+                                    .attach(Grid::column(2))
+                                    .attach(Grid::row(0)),grid_en);
+                            ctx.append_child_to(ImageWidget::new()
+                                    .id("T_chart")
+                                    .image("C:\\Users\\bonal\\OneDrive\\Desktop\\Codice\\Rust\\rec\\TEMP\\T_chart.png")
+                                    .attach(Grid::column(1))
+                                    .attach(Grid::row(1)),grid_en);
+                                }
                         *search_view(ctx.widget()).result_mut() = tagan;
 
                     } else {
