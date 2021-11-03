@@ -135,11 +135,14 @@ fn query_builder(ctx: &mut Context) -> Query {
     let [d, nd] = text_parser(search_view(ctx.widget()).desc_id().as_string());
     let dates = date_query_parser(search_view(ctx.widget()).date0().as_string(),
                                     search_view(ctx.widget()).date1().as_string());
+    let hours = hour_parser(search_view(ctx.widget()).time0().as_string(),
+                                    search_view(ctx.widget()).time1().as_string());
     query.tags = t;
     query.not_tags = nt;
     query.description = d;
     query.not_description = nd;
     query.days = dates;
+    query.h = hours;
     query
 
 }
@@ -153,6 +156,13 @@ fn text_parser(inp: String) -> [Option<Vec<String>>; 2] {
     let cont = if cont.len()==0 {None} else {Some(cont)};
     [cont, not_cont]
 
+}
+
+fn hour_parser(inp0: String, inp1: String) -> Option<[NaiveTime;2]> {
+    if [&inp0, &inp1].iter().all(|a| a.is_empty()) {return None}
+    let start_hour = NaiveTime::parse_from_str(&inp0, "%H:%M:%S").unwrap_or(NaiveTime::from_hms(0,0,0));
+    let end_hour = NaiveTime::parse_from_str(&inp1, "%H:%M:%S").unwrap_or(NaiveTime::from_hms(23,59,59));
+    Some([start_hour, end_hour])
 }
 
 fn date_parser(inp: &String) -> Result<NaiveDate, Error> {
@@ -178,6 +188,8 @@ widget!(SearchView<SearchState> {
     desc_id: String16,
     date0: String16,
     date1: String16,
+    time0: String16,
+    time1: String16,
     result: TagAn
     }
 );
@@ -218,6 +230,20 @@ impl Template for SearchView {
                                 .id("date1_bar")
                                 .water_mark("End date")
                                 .text(("date1", id))
+                                .margin((0, 8, 0, 0))
+                                .on_activate(move |states, entity| {state(id, states).action(Action::BoxActivated(entity))})
+                                .build(ctx))
+                        .child(TextBox::new()
+                                .id("time0_bar")
+                                .water_mark("Start H:M:S")
+                                .text(("time0", id))
+                                .margin((0, 8, 0, 0))
+                                .on_activate(move |states, entity| {state(id, states).action(Action::BoxActivated(entity))})
+                                .build(ctx))
+                        .child(TextBox::new()
+                                .id("time1_bar")
+                                .water_mark("End H:M:S")
+                                .text(("time1", id))
                                 .margin((0, 8, 0, 0))
                                 .on_activate(move |states, entity| {state(id, states).action(Action::BoxActivated(entity))})
                                 .build(ctx))

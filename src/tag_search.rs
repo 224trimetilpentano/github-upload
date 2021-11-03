@@ -382,7 +382,7 @@ fn ht_new(durs: &mut Vec<Duration>, times: &Vec<NaiveTime>) -> (Tstats, Hstats) 
     let hist = t_hist(&durs, n);
     durs.sort();
     let med: Duration;
-    if n == 1 {
+    if n == 1 || n == 2 {
         med = durs[0];
     } else {
         med = match n%2 {
@@ -481,10 +481,15 @@ fn chart_stats(inp: &Vec<Duration>) -> [Duration; 3] {
     let mut inp_sort = inp.clone();
     inp_sort.sort();
     let n = n as i32;
-    let med = match n%2 {
-        1 => inp_sort[(n/2+1) as usize],
-        0 => (inp_sort[(n/2) as usize]+inp_sort[(n/2+1) as usize])/2,
-        _ => Duration::zero(),
-    };
+    let med: Duration;
+    if n==1 || n==2 {
+        med = inp[0];
+    } else {
+        med = match n%2 {
+            1 => inp_sort[(n/2+1) as usize],
+            0 => (inp_sort[(n/2) as usize]+inp_sort[(n/2+1) as usize])/2,
+            _ => Duration::zero(),
+        };
+    }
     [med, Duration::seconds(mean_t as i64), Duration::seconds(std_t as i64)]
 }
