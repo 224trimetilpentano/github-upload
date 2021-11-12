@@ -1,7 +1,7 @@
 
 pub use crate::recs::*;
 pub use crate::engine::*;
-use crate::styles::theme_str;
+use crate::styles::ThemeStr;
 use std::io::Error;
 use std::fmt;
 use chrono::Timelike;
@@ -24,12 +24,12 @@ pub struct Tstats {
     mean: Duration,
     std: Duration,
     corr_h: f64,
-    hist: histogram<Duration>,
+    hist: MyHistogram<Duration>,
 }
 
 impl Tstats {
-    pub fn plot(&self, filename: &Path, plot_theme: &theme_str) -> Result<(),Error> {
-        self.hist.plot(filename, plot_theme).or(Err(err_inp("Error during histogram plotting")))?;
+    pub fn plot(&self, filename: &Path, plot_theme: &ThemeStr) -> Result<(),Error> {
+        self.hist.plot(filename, plot_theme).or(Err(err_inp("Error during MyHistogram plotting")))?;
         Ok(())
     }
 }
@@ -42,7 +42,7 @@ impl Default for Tstats {
             mean: Duration::seconds(0),
             std: Duration::seconds(0),
             corr_h: 0.0,
-            hist: histogram::default(),
+            hist: MyHistogram::default(),
         }
     }
 }
@@ -60,12 +60,12 @@ impl fmt::Display for Tstats {
 // struct per le statisitche sull' ora di inizio
 #[derive(Debug, PartialEq, Clone, Default)]
 pub struct Hstats {
-    hist: histogram<NaiveTime>
+    hist: MyHistogram<NaiveTime>
 }
 
 impl Hstats {
-    pub fn plot(&self, filename: &Path, plot_theme: &theme_str) -> Result<(),Error> {
-        self.hist.plot(filename, plot_theme).or(Err(err_inp("Error during histogram plotting")))?;
+    pub fn plot(&self, filename: &Path, plot_theme: &ThemeStr) -> Result<(),Error> {
+        self.hist.plot(filename, plot_theme).or(Err(err_inp("Error during MyHistogram plotting")))?;
         Ok(())
     }
 }
@@ -73,14 +73,14 @@ impl Hstats {
 // struct per gestire gli istogrammi
 // controllare la primitive per disegnare istogramma
 #[derive(Debug, PartialEq, Clone)]
-struct histogram<T> {
+struct MyHistogram<T> {
     bins: Vec<T>,
     count: Vec<u32>
 }
 
-impl<T> Default for histogram<T> {
+impl<T> Default for MyHistogram<T> {
     fn default() -> Self {
-        histogram {
+        MyHistogram {
             bins: Vec::<T>::new(),
             count: Vec::<u32>::new(),
         }
@@ -104,8 +104,8 @@ impl U32Mod for u32 {
 }
 
 
-impl histogram<Duration> {
-    pub fn plot(&self, filename: &Path, plot_theme: &theme_str) -> Result<(),Box<dyn std::error::Error>> {
+impl MyHistogram<Duration> {
+    pub fn plot(&self, filename: &Path, plot_theme: &ThemeStr) -> Result<(),Box<dyn std::error::Error>> {
         let root = BitMapBackend::new(filename, (400, 300)).into_drawing_area();
         let bin_size = if self.bins.len()>1 {self.bins[1]-self.bins[0]} else {Duration::minutes(20)};
         root.fill(&plot_theme.background)?;
@@ -119,7 +119,7 @@ impl histogram<Duration> {
             .x_label_area_size(35)
             .y_label_area_size(40)
             .margin(5)
-            .caption("T histogram", ("sans-serif", 30.0, &plot_theme.caption))
+            .caption("T Histogram", ("sans-serif", 30.0, &plot_theme.caption))
             .build_cartesian_2d(x_range, 0u32..self.count.iter().max().unwrap().times_f(1.2))?;
 
         chart
@@ -138,7 +138,7 @@ impl histogram<Duration> {
         chart.draw_series(
             Histogram::vertical(&chart)
                 .style(plot_theme.histogram.clone())
-                .margin(bin_size.num_minutes() as u32)
+                //.margin(bin_size.num_minutes() as u32)
                 .data(data),
         )?;
 
@@ -152,8 +152,8 @@ impl histogram<Duration> {
 }
 
 // Per ora precisione di un'ora, meglio fare bins dedicati (sopratutto per i pasti e le cose da sera)
-impl histogram<NaiveTime> {
-    pub fn plot(&self, filename: &Path, plot_theme: &theme_str) -> Result<(),Box<dyn std::error::Error>> {
+impl MyHistogram<NaiveTime> {
+    pub fn plot(&self, filename: &Path, plot_theme: &ThemeStr) -> Result<(),Box<dyn std::error::Error>> {
         let root = BitMapBackend::new(filename, (400, 300)).into_drawing_area();
         root.fill(&plot_theme.background)?;
         println!("{:?}", self.bins);
@@ -170,7 +170,7 @@ impl histogram<NaiveTime> {
             .x_label_area_size(35)
             .y_label_area_size(40)
             .margin(5)
-            .caption("H histogram", ("sans-serif", 30.0, &plot_theme.caption))
+            .caption("H Histogram", ("sans-serif", 30.0, &plot_theme.caption))
             .build_cartesian_2d(x_range, 0u32..self.count.iter().max().unwrap().times_f(1.2))?;
 
         chart
@@ -260,7 +260,7 @@ impl Tchart {
         }
     }
 
-    pub fn plot(&self, filename: &Path, plot_theme: &theme_str) -> Result<(),Box<dyn std::error::Error>> {
+    pub fn plot(&self, filename: &Path, plot_theme: &ThemeStr) -> Result<(),Box<dyn std::error::Error>> {
         let root = BitMapBackend::new(filename, (800, 300)).into_drawing_area();
         root.fill(&plot_theme.background)?;
 
@@ -420,14 +420,14 @@ fn ht_new(durs: &mut Vec<Duration>, times: &Vec<NaiveTime>) -> (Tstats, Hstats) 
 }
 
 
-// Histograms
+// MyHistograms
 
 // Check bin number appropriateness
-fn t_hist(inp: &Vec<Duration>, n: i32) -> histogram<Duration> {
+fn t_hist(inp: &Vec<Duration>, n: i32) -> MyHistogram<Duration> {
     let tmax = inp.iter().max().unwrap();
     let tmin = inp.iter().min().unwrap();
     let n_bins = (1.0+3.322*(n as f64).log10()).floor() as i32;
-    if n_bins == 0 { return histogram {
+    if n_bins == 0 { return MyHistogram {
         bins: vec![*tmax],
         count: vec![inp.len() as u32],
     }}
@@ -438,17 +438,17 @@ fn t_hist(inp: &Vec<Duration>, n: i32) -> histogram<Duration> {
         let eureka = bins.iter().enumerate().rev().find(|(_bucket,value)| value<=&i).unwrap().0;
         count[eureka]+=1;
     }
-    histogram{
+    MyHistogram{
         bins,
         count,
     }
 }
 
-fn h_hist(inp: &Vec<NaiveTime>) -> histogram<NaiveTime> {
+fn h_hist(inp: &Vec<NaiveTime>) -> MyHistogram<NaiveTime> {
     let tmax = inp.iter().max().unwrap();
     let tmin = inp.iter().min().unwrap();
     let n_bins = (*tmax - *tmin).num_hours() as i32;
-    if n_bins == 0 { return histogram {
+    if n_bins == 0 { return MyHistogram {
         bins: vec![*tmax],
         count: vec![inp.len() as u32],
     }}
@@ -458,7 +458,7 @@ fn h_hist(inp: &Vec<NaiveTime>) -> histogram<NaiveTime> {
         let eureka = bins.iter().enumerate().rev().find(|(_bucket,value)| value<=&i).expect(&format!("Errore {:?}",i)).0;
         count[eureka]+=1;
     }
-    histogram{
+    MyHistogram{
         bins,
         count,
     }

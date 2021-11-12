@@ -4,12 +4,12 @@ use  plotters::prelude::*;
 // Da mettere anche le scritte nei plots
 
 
-pub enum theme {
+pub enum Theme {
     Dark,
     Light,
 }
 
-pub struct theme_str{
+pub struct ThemeStr{
     pub background: RGBAColor,
     pub caption: RGBAColor,
     pub label: RGBAColor,
@@ -17,11 +17,11 @@ pub struct theme_str{
     pub tchart_line: ShapeStyle,
 }
 
-impl theme {
+impl Theme {
 
-    pub fn get(&self) -> theme_str {
+    pub fn get(&self) -> ThemeStr {
         match self {
-            theme::Dark => theme_str {
+            Theme::Dark => ThemeStr {
                 background: RGBColor(59, 67, 74).to_rgba(),
                 caption: WHITE.to_rgba(),
                 label: WHITE.to_rgba(),
@@ -32,7 +32,7 @@ impl theme {
                     stroke_width: 3,
                 },
             },
-            theme::Light => theme_str {
+            Theme::Light => ThemeStr {
                 background: WHITE.to_rgba(),
                 caption: BLACK.to_rgba(),
                 label: BLACK.to_rgba(),

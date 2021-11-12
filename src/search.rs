@@ -55,7 +55,7 @@ impl State for SearchState {
                     *search_view(ctx.widget()).cut_children_mut() = !now;
                 },
                 Action::Search => {
-                    let plot_theme = styles::theme::Dark.get();
+                    let plot_theme = styles::Theme::Dark.get();
                     let query = query_builder(ctx);
                     let tagan = TagAn::new(Path::new(&rec_folder()),&query, *search_view(ctx.widget()).cut_children());
                     let grid_en =ctx.child("grid").entity();
@@ -110,18 +110,18 @@ impl State for SearchState {
                                     .id("T_stats")
                                     .image("C:\\Users\\bonal\\OneDrive\\Desktop\\Codice\\Rust\\rec\\TEMP\\T_hist.png")
                                     .attach(Grid::column(1))
-                                    .attach(Grid::row(0)),grid_en);
+                                    .attach(Grid::row(0)),grid_en); // Tstats
                             ctx.append_child_to(ImageWidget::new()
                                     .id("H_stats")
                                     .image("C:\\Users\\bonal\\OneDrive\\Desktop\\Codice\\Rust\\rec\\TEMP\\H_hist.png")
                                     .attach(Grid::column(2))
-                                    .attach(Grid::row(0)),grid_en);
+                                    .attach(Grid::row(0)),grid_en); // Hstats
                             ctx.append_child_to(ImageWidget::new()
                                     .id("T_chart")
                                     .image("C:\\Users\\bonal\\OneDrive\\Desktop\\Codice\\Rust\\rec\\TEMP\\T_chart.png")
                                     .attach(Grid::column(1))
                                     .attach(Grid::row(1)),grid_en);
-                                }
+                                } // Tchart
                         *search_view(ctx.widget()).result_mut() = tagan;
 
                     } else {
@@ -165,10 +165,18 @@ fn text_parser(inp: String) -> [Option<Vec<String>>; 2] {
 
 }
 
+fn add_semicolon(a: String) -> String {
+    if !a.contains(":") {
+        a + ":00"
+    } else {
+        a
+    }
+}
+
 fn hour_parser(inp0: String, inp1: String) -> Option<[NaiveTime;2]> {
     if [&inp0, &inp1].iter().all(|a| a.is_empty()) {return None}
-    let start_hour = NaiveTime::parse_from_str(&inp0, "%H:%M:%S").unwrap_or(NaiveTime::from_hms(0,0,0));
-    let end_hour = NaiveTime::parse_from_str(&inp1, "%H:%M:%S").unwrap_or(NaiveTime::from_hms(23,59,59));
+    let start_hour = NaiveTime::parse_from_str(&(add_semicolon(inp0) + ":00"), "%H:%M:%S").unwrap_or(NaiveTime::from_hms(0,0,0));
+    let end_hour = NaiveTime::parse_from_str(&(add_semicolon(inp1) + ":00"), "%H:%M:%S").unwrap_or(NaiveTime::from_hms(23,59,59));
     Some([start_hour, end_hour])
 }
 
@@ -244,7 +252,7 @@ impl Template for SearchView {
                                 .build(ctx))
                         .child(TextBox::new()
                                 .id("time0_bar")
-                                .water_mark("Start H:M:S")
+                                .water_mark("Start H:M")
                                 .text(("time0", id))
                                 .margin((0, 8, 0, 0))
                                 .on_activate(move |states, entity| {state(id, states).action(Action::BoxActivated(entity))})
