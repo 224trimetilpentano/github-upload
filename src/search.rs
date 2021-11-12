@@ -10,6 +10,7 @@ use std::fmt::Display;
 
 enum Action {
     BoxActivated(Entity),
+    SwitchChildren,
     Search,
 }
 
@@ -49,10 +50,14 @@ impl State for SearchState {
                     println!("submitting {}", text);
                     text.clear();
                 },
+                Action::SwitchChildren => {
+                    let now = *search_view(ctx.widget()).cut_children();
+                    *search_view(ctx.widget()).cut_children_mut() = !now;
+                },
                 Action::Search => {
                     let plot_theme = styles::theme::Dark.get();
                     let query = query_builder(ctx);
-                    let tagan = TagAn::new(Path::new(&rec_folder()),&query, true);
+                    let tagan = TagAn::new(Path::new(&rec_folder()),&query, *search_view(ctx.widget()).cut_children());
                     if let Ok(tagan) = tagan {
                         let grid_en =ctx.child("grid").entity();
                         ctx.clear_children_of(grid_en);
@@ -190,6 +195,7 @@ widget!(SearchView<SearchState> {
     date1: String16,
     time0: String16,
     time1: String16,
+    cut_children: bool,
     result: TagAn
     }
 );
@@ -198,6 +204,7 @@ impl Template for SearchView {
     fn template(self, id: Entity, ctx: &mut BuildContext) -> Self {
         self.name("SearchView")
             .result(TagAn::default())
+            .cut_children(true)
             .date1(chrono::offset::Local::today().naive_local().format("%Y/%m/%d").to_string())
             .date0((chrono::offset::Local::today().naive_local()-Duration::days(10))
                         .format("%Y/%m/%d").to_string())
@@ -256,6 +263,14 @@ impl Template for SearchView {
                                 })
                                 .build(ctx)
                                 )
+                        .child(
+                            Switch::new()
+                                .on_changed(move |states, _entity, _| {
+                                    state(id, states).action(Action::SwitchChildren);
+                                })
+                                .v_align("center")
+                                .build(ctx),
+                        )
                         .width(1000.0)
                         .spacing(20.0)
                         .build(ctx))

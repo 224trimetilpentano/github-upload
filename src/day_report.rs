@@ -141,7 +141,7 @@ impl WeekReport {
 
     pub fn new(folder: &Path, n_week: i64) -> Result<WeekReport, Error> {
 
-        let today =chrono::offset::Local::today().naive_local();
+        let today =chrono::offset::Local::today().naive_local()+Duration::days(7*n_week);
         let starting_day = today+Duration::days(-7);
         let mut inp = Vec::from_folder(folder)?;
         inp.flatten();

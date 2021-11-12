@@ -33,7 +33,7 @@ impl State for WeekState {
             match act {
                 ActionWeek::Change(a) => {
                     *week_view(ctx.widget()).n_week_mut() += a;
-                    let week = WeekReport::new(Path::new(&rec_folder()),*week_view(ctx.widget()).n_week_mut()).unwrap();
+                    let week = WeekReport::new(Path::new(&rec_folder()),*week_view(ctx.widget()).n_week_mut()).unwrap_or(WeekReport::default());
                     let stack =ctx.child("Box").entity();
                     ctx.clear_children_of(stack);
                     for i in 0..7 {
