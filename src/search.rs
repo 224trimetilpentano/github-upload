@@ -58,15 +58,15 @@ impl State for SearchState {
                     let plot_theme = styles::theme::Dark.get();
                     let query = query_builder(ctx);
                     let tagan = TagAn::new(Path::new(&rec_folder()),&query, *search_view(ctx.widget()).cut_children());
+                    let grid_en =ctx.child("grid").entity();
+                    ctx.clear_children_of(grid_en);
                     if let Ok(tagan) = tagan {
-                        let grid_en =ctx.child("grid").entity();
-                        ctx.clear_children_of(grid_en);
                         // stats and ranking
                         ctx.append_child_to(Stack::new()
                                                     .orientation(Orientation::Vertical)
                                                     .spacing(5.0)
                                                     .v_align("center")
-                                                    .id("stack_stats"),grid_en);
+                                                    .id("stack_stats"),grid_en); // Stats
                         let stack_stats = ctx.child("stack_stats").entity();
                         block_builder(&tagan, ctx, stack_stats);
 
@@ -76,7 +76,7 @@ impl State for SearchState {
                                                     .v_align("center")
                                                     .id("chart_stats")
                                                     .attach(Grid::column(0))
-                                                    .attach(Grid::row(1)),grid_en);
+                                                    .attach(Grid::row(1)),grid_en); //Chart stats
                         let chart_stats = ctx.child("chart_stats").entity();
                         block_builder(&tagan.t_chart, ctx, chart_stats);
 
@@ -86,7 +86,7 @@ impl State for SearchState {
                                                     .v_align("center")
                                                     .id("stack_rank")
                                                     .attach(Grid::column(3))
-                                                    .attach(Grid::row(0)),grid_en);
+                                                    .attach(Grid::row(0)),grid_en); // Ranking
                         let stack_rank = ctx.child("stack_rank").entity();
                         let mut ranking = tagan.rank_tags.iter().fold(String::new(), |acc, a| acc + format!("\n {}",a).as_str());
                         ranking = String::from("Tag ranking:\n") + &ranking;
@@ -97,7 +97,7 @@ impl State for SearchState {
                                                     .v_align("center")
                                                     .id("stack_last")
                                                     .attach(Grid::column(3))
-                                                    .attach(Grid::row(1)),grid_en);
+                                                    .attach(Grid::row(1)),grid_en); // Last descriptions
                         let stack_last = ctx.child("stack_last").entity();
                         let last = tagan.last.iter().fold(String::from("Last records:\n"),|a, b| a + "\n" + b);
                         block_builder(&last, ctx, stack_last);
@@ -125,7 +125,9 @@ impl State for SearchState {
                         *search_view(ctx.widget()).result_mut() = tagan;
 
                     } else {
-                        ctx.child("text").set("text",String16::from("Matches not found"));
+                        ctx.append_child_to(TextBlock::new()
+                                .text("Matches not found")
+                                .font_size(12), grid_en);
                     }
                 },
             }
@@ -218,21 +220,21 @@ impl Template for SearchView {
                                 .margin((0, 8, 0, 0))
                                 .width(500.0)
                                 .on_activate(move |states, entity| {state(id, states).action(Action::BoxActivated(entity))})
-                                .build(ctx))
+                                .build(ctx)) // Tag key
                         .child(TextBox::new()
                                 .id("desc_bar")
                                 .water_mark("Description")
                                 .text(("desc_id", id))
                                 .margin((0, 8, 0, 0))
                                 .on_activate(move |states, entity| {state(id, states).action(Action::BoxActivated(entity))})
-                                .build(ctx))
+                                .build(ctx)) // Description key
                         .child(TextBox::new()
                                 .id("date0_bar")
                                 .water_mark("Start date")
                                 .text(("date0", id))
                                 .margin((0, 8, 0, 0))
                                 .on_activate(move |states, entity| {state(id, states).action(Action::BoxActivated(entity))})
-                                .build(ctx))
+                                .build(ctx)) // Date keys
                         .child(TextBox::new()
                                 .id("date1_bar")
                                 .water_mark("End date")
@@ -246,7 +248,7 @@ impl Template for SearchView {
                                 .text(("time0", id))
                                 .margin((0, 8, 0, 0))
                                 .on_activate(move |states, entity| {state(id, states).action(Action::BoxActivated(entity))})
-                                .build(ctx))
+                                .build(ctx)) // Time keys
                         .child(TextBox::new()
                                 .id("time1_bar")
                                 .water_mark("End H:M:S")
@@ -262,7 +264,12 @@ impl Template for SearchView {
                                     true
                                 })
                                 .build(ctx)
-                                )
+                            ) // Search button
+                        .child(TextBlock::new()
+                                .text("Keep children")
+                                .font_size(15.0)
+                                .margin((0, 8, 0, 0))
+                                .build(ctx)) // "Keeps children" text
                         .child(
                             Switch::new()
                                 .on_changed(move |states, _entity, _| {
@@ -270,7 +277,7 @@ impl Template for SearchView {
                                 })
                                 .v_align("center")
                                 .build(ctx),
-                        )
+                        ) // Keeps children button
                         .width(1000.0)
                         .spacing(20.0)
                         .build(ctx))
@@ -287,7 +294,7 @@ impl Template for SearchView {
                                 .attach(Grid::column(0))
                                 .attach(Grid::row(0))
                                 .text("Insert query").build(ctx))
-                        .build(ctx))
+                        .build(ctx)) // Result grid
                 .build(ctx)
             )
 

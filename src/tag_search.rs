@@ -107,12 +107,13 @@ impl U32Mod for u32 {
 impl histogram<Duration> {
     pub fn plot(&self, filename: &Path, plot_theme: &theme_str) -> Result<(),Box<dyn std::error::Error>> {
         let root = BitMapBackend::new(filename, (400, 300)).into_drawing_area();
+        let bin_size = if self.bins.len()>1 {self.bins[1]-self.bins[0]} else {Duration::minutes(20)};
         root.fill(&plot_theme.background)?;
         println!("{:?}", self.bins);
         println!("{:?}", self.count);
         let x_range = std::ops::Range {
             start: self.bins[0].num_minutes() - 15,
-            end: self.bins.last().unwrap().num_minutes() + 15};
+            end: (*self.bins.last().unwrap() + bin_size).num_minutes() + 15};
 
         let mut chart = ChartBuilder::on(&root)
             .x_label_area_size(35)
@@ -132,12 +133,12 @@ impl histogram<Duration> {
             .label_style(("sans-serif", 15, &plot_theme.label))
             .draw()?;
 
-        let data = self.bins.iter().map(|a| a.num_minutes()).zip(self.count.iter().map(|x: &u32| *x));
+        let data = self.bins.iter().map(|a| (*a+bin_size/2).num_minutes()).zip(self.count.iter().map(|x: &u32| *x));
 
         chart.draw_series(
             Histogram::vertical(&chart)
                 .style(plot_theme.histogram.clone())
-                .margin(100/self.bins.len() as u32)
+                .margin(bin_size.num_minutes() as u32)
                 .data(data),
         )?;
 
@@ -210,6 +211,9 @@ pub struct Tchart {
     median: Duration,
     mean: Duration,
     std: Duration,
+    median_in_day: Duration,
+    mean_in_day: Duration,
+    std_in_day: Duration,
 }
 
 impl Default for Tchart {
@@ -221,30 +225,38 @@ impl Default for Tchart {
         median: Duration::zero(),
         mean: Duration::zero(),
         std: Duration::zero(),
+        median_in_day: Duration::zero(),
+        mean_in_day: Duration::zero(),
+        std_in_day: Duration::zero(),
         }
     }
 }
 
 impl Tchart {
-    fn new(durs: &Vec<Duration>, dates: &Vec<NaiveDate>) -> Tchart {
-        let date_min = dates.iter().min().unwrap();
-        let date_max = dates.iter().max().unwrap();
-        let date_ax: Vec<NaiveDate> = date_min.iter_days().take_while(|a| a<=date_max).collect();
+    fn new(durs: &Vec<Duration>, dates: &Vec<NaiveDate>, range: &[NaiveDate; 2]) -> Tchart {
+        let date_min = range[0].clone();
+        let date_max = range[1].clone();
+        let date_ax: Vec<NaiveDate> = date_min.iter_days().take_while(|a| *a<=date_max).collect();
         let n = date_ax.len();
         let mut dur_ax = vec![Duration::zero(); n];
         for (count, i) in dates.iter().enumerate() {
             let eureka = date_ax.iter().enumerate().find(|(_bucket,value)| value==&i).unwrap().0;
             dur_ax[eureka] = dur_ax[eureka] + durs[count];
         }
+        let non_zero_days = dur_ax.iter().cloned().filter(|a| a.num_minutes()>0).collect();
+        let [median_in_day, mean_in_day, std_in_day] = chart_stats(&non_zero_days);
         let [median, mean, std] = chart_stats(&dur_ax);
         println!("{:?}",dur_ax);
         Tchart{
             dates: date_ax,
             durations: dur_ax,
-            range: *date_max - *date_min,
+            range: date_max - date_min,
             median,
             mean,
             std,
+            mean_in_day,
+            median_in_day,
+            std_in_day,
         }
     }
 
@@ -302,9 +314,12 @@ impl Tchart {
 
 impl fmt::Display for Tchart {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        writeln!(f,"Daily stats:\n    median: {}",WrapDuration(self.median))?;
-        writeln!(f,"    mean: {}",WrapDuration(self.mean))?;
-        writeln!(f,"    std: {}",WrapDuration(self.std))
+        writeln!(f,"Every day stats:\n    median: {}",WrapDuration(self.median))?;
+        writeln!(f,"    mean : {}",WrapDuration(self.mean))?;
+        writeln!(f,"    std: {}",WrapDuration(self.std))?;
+        writeln!(f,"In day stats:\n    median: {}",WrapDuration(self.median_in_day))?;
+        writeln!(f,"    mean: {}",WrapDuration(self.mean_in_day))?;
+        writeln!(f,"    std: {}",WrapDuration(self.std_in_day))
     }
 }
 
@@ -342,7 +357,7 @@ impl TagAn {
         let n_rec = found.len();
         let last = found.iter().rev().take(5).cloned().map(|a| a.description.unwrap_or(String::from(""))).collect();
         let (mut durs, times, dates) = get_t_h_d(&found);
-        let t_chart = Tchart::new(&durs, &dates);
+        let t_chart = Tchart::new(&durs, &dates, &query.days.unwrap());
         let (t_stats, h_stats) =  ht_new(&mut durs, &times);
         let rank_tags = found.get_tagtimes().iter().take(10).cloned().collect();
 
@@ -375,7 +390,7 @@ fn get_t_h_d(inp: &Vec<Rec>) -> (Vec<Duration>, Vec<NaiveTime>, Vec<NaiveDate>) 
     (dur, times, dates)
 }
 
-// Builder of Hstats and Tstats, all in one for redundancy avoiding
+// Builder of Hstats and Tstats, all in one in order to avoid redundancy
 fn ht_new(durs: &mut Vec<Duration>, times: &Vec<NaiveTime>) -> (Tstats, Hstats) {
     let [n, sum, mean, std, corr] = stats_t(durs, times);
     let n = n as i32;
@@ -411,7 +426,7 @@ fn ht_new(durs: &mut Vec<Duration>, times: &Vec<NaiveTime>) -> (Tstats, Hstats) 
 fn t_hist(inp: &Vec<Duration>, n: i32) -> histogram<Duration> {
     let tmax = inp.iter().max().unwrap();
     let tmin = inp.iter().min().unwrap();
-    let n_bins = n / 4_i32;
+    let n_bins = (1.0+3.322*(n as f64).log10()).floor() as i32;
     if n_bins == 0 { return histogram {
         bins: vec![*tmax],
         count: vec![inp.len() as u32],
