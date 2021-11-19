@@ -5,12 +5,24 @@
 
 
 pub use std::time::Duration as stdDuration;
-pub use chrono::{NaiveDateTime, NaiveDate, NaiveTime, Duration, Datelike, Weekday};
+pub use chrono::{NaiveDateTime, NaiveDate, NaiveTime, Duration, Datelike, Weekday, Timelike};
 use std::io::{Error, ErrorKind};
 use std::fs::read_to_string;
+use std::fmt;
 pub use std::path::Path;
 
 // Structs
+
+
+// Duration wrapper, per il fmt
+pub struct WrapDuration(pub Duration);
+
+impl fmt::Display for WrapDuration {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let hours = &self.0.num_hours();
+        write!(f,"{:02}:{:02}", hours , &self.0.num_minutes()- hours*60)
+    }
+}
 
 #[derive(PartialEq, Debug, Clone)]
 pub struct Rec {
@@ -21,6 +33,27 @@ pub struct Rec {
     pub children: Option<Vec<Rec>>,
 }
 
+
+impl fmt::Display for Rec {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f,"H: {}", display_datetimes_into_time(self.h))?;
+        write!(f," T: {}", WrapDuration(self.t))?;
+        if self.tags.is_some() {
+            let tags_string = self.tags.as_ref().unwrap().iter().fold(String::new(),|acc, item| acc+item);
+            write!(f,"\n  Tags: {}",tags_string)?};
+        if self.description.is_some() {
+            write!(f,"\n  Des: {}", self.description.as_ref().unwrap())?
+        }
+        write!(f,"")
+
+    }
+}
+
+
+fn display_datetimes_into_time(i: Option<NaiveDateTime>) -> String {
+    let a = i.unwrap_or(NaiveDate::from_ymd(1970,01,01).and_hms(0,0,0)).time();
+    format!("{}:{}", a.hour(), a.minute())
+}
 
 pub fn rec_folder() -> String {
     String::from("C:\\Users\\bonal\\OneDrive\\Desktop\\RecordTime")

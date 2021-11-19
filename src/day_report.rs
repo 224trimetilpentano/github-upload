@@ -177,7 +177,7 @@ impl IntoPropertySource<WeekReport> for WeekReport {
 
 // Implement: focus search files based on current date
 /// Retrieve the last 7 days and nest them into a Vec of Vec<Rec>
-fn retrieve_days<'a>(inp: &Vec<Rec>, n_week: i64) -> Vec<Option<Vec<Rec>>> {
+pub fn retrieve_days(inp: &Vec<Rec>, n_week: i64) -> Vec<Option<Vec<Rec>>> {
     let today = chrono::offset::Local::today().naive_local();
     let mut query = Query::new();
     let mut out: Vec<Option<Vec<Rec>>> =Vec::new();

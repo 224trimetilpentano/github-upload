@@ -36,16 +36,6 @@ use std::fmt;
 use std::cmp::Ordering;
 use std::default::Default;
 
-// Duration wrapper, per il fmt
-
-pub struct WrapDuration(pub Duration);
-
-impl fmt::Display for WrapDuration {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        let hours = &self.0.num_hours();
-        write!(f,"{:02}:{:02}", hours , &self.0.num_minutes()- hours*60)
-    }
-}
 
 /// Tagtime
 /// Struct useful for tag ordering based on time.
@@ -193,6 +183,8 @@ pub trait RecMatch {
 
     fn cut_children(&mut self);
 
+    fn display(&self) -> String;
+
 }
 
 impl RecMatch for Vec<Rec> {
@@ -266,6 +258,10 @@ impl RecMatch for Vec<Rec> {
             }
         }
 
+    }
+
+    fn display(&self) -> String {
+        self.iter().fold(String::new(),|acc, item| acc + &format!("{} \n",item))
     }
 
 }

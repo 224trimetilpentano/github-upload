@@ -103,12 +103,16 @@ impl State for SearchState {
                         block_builder(&last, ctx, stack_last);
                         // plots
                         if tagan.n_rec != 1 {
-                            tagan.t_stats.plot(&Path::new("C:\\Users\\bonal\\OneDrive\\Desktop\\Codice\\Rust\\rec\\TEMP\\T_hist.png"), &plot_theme);
-                            tagan.h_stats.plot(&Path::new("C:\\Users\\bonal\\OneDrive\\Desktop\\Codice\\Rust\\rec\\TEMP\\H_hist.png"), &plot_theme);
-                            tagan.t_chart.plot(&Path::new("C:\\Users\\bonal\\OneDrive\\Desktop\\Codice\\Rust\\rec\\TEMP\\T_chart.png"), &plot_theme);
+                            let path_t_hist = "C:\\Users\\bonal\\OneDrive\\Desktop\\Codice\\Rust\\rec\\TEMP\\T_hist.png";
+                            let path_h_hist = "C:\\Users\\bonal\\OneDrive\\Desktop\\Codice\\Rust\\rec\\TEMP\\H_hist.png";
+                            let path_t_chart ="C:\\Users\\bonal\\OneDrive\\Desktop\\Codice\\Rust\\rec\\TEMP\\T_chart.png";
+                            let path_error = "C:\\Users\\bonal\\OneDrive\\Desktop\\Codice\\Rust\\rec\\TEMP\\error.png";
+                            tagan.t_stats.plot(&Path::new(path_t_hist), &plot_theme);
+                            tagan.h_stats.plot(&Path::new(path_h_hist), &plot_theme);
+                            tagan.t_chart.plot(&Path::new(path_t_chart), &plot_theme);
                             ctx.append_child_to(ImageWidget::new()
                                     .id("T_stats")
-                                    .image("C:\\Users\\bonal\\OneDrive\\Desktop\\Codice\\Rust\\rec\\TEMP\\T_hist.png")
+                                    .image(path_t_hist)
                                     .attach(Grid::column(1))
                                     .attach(Grid::row(0)),grid_en); // Tstats
                             ctx.append_child_to(ImageWidget::new()
@@ -153,7 +157,6 @@ fn query_builder(ctx: &mut Context) -> Query {
     query
 
 }
-
 
 fn text_parser(inp: String) -> [Option<Vec<String>>; 2] {
     if inp.is_empty() {return [None, None]}
