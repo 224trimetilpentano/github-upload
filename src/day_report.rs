@@ -21,9 +21,9 @@ pub struct DayReport {
 impl DayReport {
 
     pub fn new(recs: &mut Vec<Rec>) -> Result<DayReport, Error> {
-        recs.flatten();
         let day = recs[0].h.ok_or(err_inp("Waking hour not found"))?.date();
         let bed = bed_time(recs)?;
+        recs.flatten();
         let food = match_food(recs);
         let ranking = recs.get_tagtimes();
         let selfs = get_self(recs);
@@ -80,7 +80,7 @@ impl Default for DayReport {
     }
 }
 
-fn disp_weekday(inp: &Weekday) -> String {
+pub fn disp_weekday(inp: &Weekday) -> String {
     let out = match inp {
         Weekday::Mon => "MONDAY",
         Weekday::Tue => "TUESDAY",
@@ -96,10 +96,10 @@ fn disp_weekday(inp: &Weekday) -> String {
 
 impl fmt::Display for DayReport {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        writeln!(f, "{}\n", disp_weekday(&self.day.weekday()))?;
-        writeln!(f, "\nWoke up at: {:?} \nWent to sleep at: {:?}\n \n", &self.bed[0], &self.bed[1])?;
+        writeln!(f, "{} {}\n", &self.day.format("%d/%m"), disp_weekday(&self.day.weekday()))?;
+        writeln!(f, "\n \n Woke up at: {:?} \nWent to sleep at: {:?}\n \n", &self.bed[0], &self.bed[1])?;
         let food_str = &self.food.as_ref().or(Some(&vec!["No food recorded".to_string()])).unwrap()
-                            .iter().fold(String::new(), |acc, x| acc + &return_string(x,20) + "\n    ");
+                            .iter().fold(String::new(), |acc, x| acc + &return_string(x,15) + "\n    ");
         writeln!(f, "Food eaten:\n  {}", &food_str)?;
         let selfs = &self.selfs.as_ref().or(Some(&vec!["No selfs recorded".to_string()])).unwrap()
                             .iter().fold(String::new(), |acc, x| acc + x + "\n    ");
@@ -111,18 +111,6 @@ impl fmt::Display for DayReport {
         write!(f, "Tag ranking:\n       Time      Tag\n{}", &ranks)
 
     }
-}
-
-// Word wrap (at spaces)
-fn return_string(inp: &String, n_char: usize) -> String {
-    let mut out = inp.clone();
-    let a = out.len()/n_char;
-    if a>1 {(1..a+1).collect::<Vec<usize>>().iter().for_each(|x| out.insert_str(find_space(&out,x*n_char),"\n      "))}
-    out
-}
-// Find the last space before the usize
-fn find_space(inp: &String, id: usize) -> usize {
-    inp.split_at(id).0.rfind(" ").unwrap()
 }
 
 

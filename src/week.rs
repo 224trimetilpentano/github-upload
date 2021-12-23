@@ -40,28 +40,28 @@ fn data_view(ctx: &mut Context, a: i64) {
             ctx.append_child_to(Stack::new().id(i_st.as_str()).orientation(Orientation::Vertical), stack);
             let day_stack = ctx.child(i_st.as_str()).entity();
             let sleep_hours = match week.sleep_hours[i] {
-                Some(a) => format!("Sleep hours: {}",WrapDuration(a)),
+                Some(a) => format!("Hours slept: {}",WrapDuration(a)),
                 None => String::from("No data available")
             };
             ctx.append_child_to(TextBlock::new().text(sleep_hours)
                                                         .font_size(14)
                                                         .v_align("center")
                                                         .h_align("left"), day_stack);
-            block_builder(day, ctx, day_stack);
+            block_builder(day, ctx, day_stack, 14.0);
         } else {
-            block_builder(&String::from("No data available"), ctx, stack);
+            block_builder(&String::from("No data available"), ctx, stack, 14.0);
         }
     }
     ctx.append_child_to(Stack::new().id("tot").orientation(Orientation::Vertical), stack);
     let day_stack =ctx.child("tot").entity();
-    block_builder(&week.tot_report, ctx, day_stack);
+    block_builder(&week.tot_report, ctx, day_stack, 14.0);
 }
 
-fn block_builder<T: Display>(inp: &T, ctx: &mut Context, stack: Entity) {
+fn block_builder<T: Display>(inp: &T, ctx: &mut Context, stack: Entity, font_size: f64) {
     let splits = String::from(format!("{}",inp));
     let splits = splits.split("\n");
     splits.for_each(|b| ctx.append_child_to(TextBlock::new().text(b)
-                                                .font_size(14)
+                                                .font_size(font_size)
                                                 .v_align("center")
                                                 .h_align("left"), stack))
 
@@ -92,9 +92,15 @@ impl State for WeekState {
                                 let i_st = format!("{}",i);
                                 ctx.append_child_to(Stack::new().id(i_st.as_str()).orientation(Orientation::Vertical), stack);
                                 let day_stack =ctx.child(i_st.as_str()).entity();
-                                block_builder(&day.display(), ctx, day_stack);
+                                let date = day.iter().filter_map(|a| a.h).next().unwrap().date();
+                                let head = format!("{} {}\n", date.format("%d/%m"), disp_weekday(&date.weekday()));
+                                ctx.append_child_to(TextBlock::new().text(head)
+                                                                            .font_size(14)
+                                                                            .v_align("center")
+                                                                            .h_align("left"), day_stack);
+                                block_builder(&day.display(), ctx, day_stack, 11.0);
                             } else {
-                                block_builder(&String::from("No data available"), ctx, stack);
+                                block_builder(&String::from("No data available"), ctx, stack, 14.0);
                             }
                         }
                     }
@@ -162,9 +168,8 @@ impl Template for WeekView {
                             .v_align("center")
                             .h_align("center")
                             .spacing(20)
-                            .build(ctx)
-                    )
+                            .build(ctx))
                     .build(ctx)
-            )
+                    )
     }
 }

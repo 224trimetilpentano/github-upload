@@ -24,6 +24,19 @@ impl fmt::Display for WrapDuration {
     }
 }
 
+// Word wrap (at spaces)
+pub fn return_string(inp: &String, n_char: usize) -> String {
+    let mut out = inp.clone();
+    let a = out.len()/n_char;
+    if a>1 {(1..a+1).collect::<Vec<usize>>().iter().for_each(|x| out.insert_str(find_space(&out,x*n_char),"\n      "))}
+    out
+}
+// Find the last space before the usize
+fn find_space(inp: &String, id: usize) -> usize {
+    inp.split_at(id).0.rfind(" ").unwrap()
+}
+
+
 #[derive(PartialEq, Debug, Clone)]
 pub struct Rec {
     pub h: Option<NaiveDateTime>,
@@ -48,10 +61,10 @@ impl fmt::Display for Rec {
         write!(f,"H: {}", display_datetimes_into_time(self.h))?;
         write!(f," T: {}", WrapDuration(self.t))?;
         if self.tags.is_some() {
-            let tags_string = self.tags.as_ref().unwrap().iter().fold(String::new(),|acc, item| acc+item);
+            let tags_string = self.tags.as_ref().unwrap().iter().fold(String::new(),|acc, item| acc + " " +item);
             write!(f,"\n  Tags: {}",tags_string)?};
         if self.description.is_some() {
-            write!(f,"\n  Des: {}", self.description.as_ref().unwrap())?
+            write!(f,"\n  Des: {}", return_string(self.description.as_ref().unwrap(), 15))?
         }
         write!(f,"")
 
@@ -61,7 +74,7 @@ impl fmt::Display for Rec {
 
 fn display_datetimes_into_time(i: Option<NaiveDateTime>) -> String {
     let a = i.unwrap_or(NaiveDate::from_ymd(1970,01,01).and_hms(0,0,0)).time();
-    format!("{}:{}", a.hour(), a.minute())
+    format!("{:02}:{:02}", a.hour(), a.minute())
 }
 
 pub fn rec_folder() -> String {
