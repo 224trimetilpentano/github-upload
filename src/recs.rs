@@ -33,6 +33,15 @@ pub struct Rec {
     pub children: Option<Vec<Rec>>,
 }
 
+// Operazioni tra recs
+
+pub fn time_distance(rec1: &Rec, rec2: &Rec) -> Option<Duration> {
+    if rec1.h.is_some() && rec1.h.is_some() {
+        Some(rec1.h.unwrap()-rec2.h.unwrap()-rec2.t)
+    } else {
+        None
+    }
+}
 
 impl fmt::Display for Rec {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
@@ -59,15 +68,22 @@ pub fn rec_folder() -> String {
     String::from("C:\\Users\\bonal\\OneDrive\\Desktop\\RecordTime")
 }
 
-
-
 // Base functions
 
-// Error builder in order to reduce verbosity
+// Error builders in order to reduce verbosity
 pub fn err_inp(msg: &str) -> Error {
     Error::new(ErrorKind::InvalidInput,msg)
 }
 
+fn error_print(r: Result<Rec,Error>, n: usize, d: u32) -> Option<Rec> {
+    match r {
+        Ok(a) => Some(a),
+        error => {println!("Failed day {} at record number {}: {:?}",d,n+1,error);
+        None},
+    }
+}
+
+// Parsing functions
 fn parse_time(inp: &String) -> Result<NaiveTime,Error> {
     let h_id = inp.find("H ").ok_or(err_inp("Could not find 'H '"))?;
     let inp_cut = inp.get(h_id..h_id+7).ok_or(err_inp("Not enough digits for H parsing"))?.to_string();
@@ -109,7 +125,6 @@ fn get_des(inp: &String) -> Result<Option<String>, Error> {
 }
 
 // Implementations
-
 
 impl Rec {
     /// COnstructor for Rec
@@ -159,13 +174,6 @@ impl Rec {
 
 }
 
-fn error_print(r: Result<Rec,Error>, n: usize, d: u32) -> Option<Rec> {
-    match r {
-        Ok(a) => Some(a),
-        error => {println!("Failed day {} at record number {}: {:?}",d,n+1,error);
-        None},
-    }
-}
 
 /// Take an instance of a day input and return the corresponding Recs
 fn read_day(count: usize, day: &str, file_name: &Vec<u32>) -> Option<Vec<Rec>> {
@@ -180,7 +188,6 @@ fn read_day(count: usize, day: &str, file_name: &Vec<u32>) -> Option<Vec<Rec>> {
     Some(recs)
 }
 
-
 pub trait RecBuilder {
 
     fn from_file(path: &Path) -> Result<Vec<Rec>, Error>;
@@ -189,14 +196,13 @@ pub trait RecBuilder {
 }
 
 
-
 /// Constructor for Vec<Rec> from files and folders
 impl RecBuilder for Vec<Rec> {
 
     fn from_file(path: &Path) -> Result<Vec<Rec>, Error> {
         let file_name = path.file_name().unwrap().to_str().unwrap().split(".").next().unwrap();
         let file_name : Vec<u32> = file_name.split("-")
-                                            .map(|a| a.parse::<u32>().expect("Invalid filename"))
+                                            .filter_map(|a| a.parse::<u32>().ok())
                                             .collect();
 
         let out: Vec<Rec>= read_to_string(path)?.split("|").enumerate()

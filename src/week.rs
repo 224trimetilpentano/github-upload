@@ -38,7 +38,15 @@ fn data_view(ctx: &mut Context, a: i64) {
         if let Some(day)=&week.day_reports[i] {
             let i_st = format!("{}",i);
             ctx.append_child_to(Stack::new().id(i_st.as_str()).orientation(Orientation::Vertical), stack);
-            let day_stack =ctx.child(i_st.as_str()).entity();
+            let day_stack = ctx.child(i_st.as_str()).entity();
+            let sleep_hours = match week.sleep_hours[i] {
+                Some(a) => format!("Sleep hours: {}",WrapDuration(a)),
+                None => String::from("No data available")
+            };
+            ctx.append_child_to(TextBlock::new().text(sleep_hours)
+                                                        .font_size(14)
+                                                        .v_align("center")
+                                                        .h_align("left"), day_stack);
             block_builder(day, ctx, day_stack);
         } else {
             block_builder(&String::from("No data available"), ctx, stack);
@@ -49,6 +57,15 @@ fn data_view(ctx: &mut Context, a: i64) {
     block_builder(&week.tot_report, ctx, day_stack);
 }
 
+fn block_builder<T: Display>(inp: &T, ctx: &mut Context, stack: Entity) {
+    let splits = String::from(format!("{}",inp));
+    let splits = splits.split("\n");
+    splits.for_each(|b| ctx.append_child_to(TextBlock::new().text(b)
+                                                .font_size(14)
+                                                .v_align("center")
+                                                .h_align("left"), stack))
+
+}
 
 impl State for WeekState {
     fn update(&mut self, _: &mut Registry, ctx: &mut Context) {
@@ -92,16 +109,6 @@ impl State for WeekState {
 
 fn state<'a>(id: Entity, states: &'a mut StatesContext) -> &'a mut WeekState {
     states.get_mut(id)
-}
-
-fn block_builder<T: Display>(inp: &T, ctx: &mut Context, stack: Entity) {
-    let splits = String::from(format!("{}",inp));
-    let splits = splits.split("\n");
-    splits.for_each(|b| ctx.append_child_to(TextBlock::new().text(b)
-                                                .font_size(14)
-                                                .v_align("center")
-                                                .h_align("left"), stack))
-
 }
 
 // Non supporta Option
