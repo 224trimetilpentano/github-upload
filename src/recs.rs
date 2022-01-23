@@ -130,7 +130,13 @@ fn get_tag(inp: &String) -> Option<Vec<String>> {
 
 fn get_des(inp: &String) -> Result<Option<String>, Error> {
     match inp.find("'") {
-        Some(a) => return Ok(Some(inp[a+1..inp.rfind("'").ok_or(err_inp("Could not find the second ' for description"))?].to_string())),
+        Some(a) => {
+            let b = inp.rfind("'").unwrap();
+            if b>a {
+                return Ok(Some(inp[a+1..b].to_string()));
+            } else {
+                return Err(err_inp("There is only one ' in the description"));
+            }},
         None => return Ok(None),
 
     }
