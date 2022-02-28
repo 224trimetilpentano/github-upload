@@ -6,7 +6,6 @@ use std::io::Error;
 use std::fmt;
 use chrono::Timelike;
 use std::default::Default;
-use orbtk::prelude::{PropertySource, IntoPropertySource};
 use plotters::prelude::*;
 use std::path::Path;
 
@@ -107,10 +106,10 @@ impl U32Mod for u32 {
 impl MyHistogram<Duration> {
     pub fn plot(&self, filename: &Path, plot_theme: &ThemeStr) -> Result<(),Box<dyn std::error::Error>> {
         let root = BitMapBackend::new(filename, (400, 300)).into_drawing_area();
-        let bin_size = if self.bins.len()>1 {self.bins[1]-self.bins[0]} else {Duration::minutes(20)};
         root.fill(&plot_theme.background)?;
-        println!("{:?}", self.bins);
-        println!("{:?}", self.count);
+
+        let bin_size = if self.bins.len()>1 {self.bins[1]-self.bins[0]} else {Duration::minutes(20)};
+        // root.fill(&plot_theme.background)?;
         let x_range = std::ops::Range {
             start: self.bins[0].num_minutes() - 15,
             end: (*self.bins.last().unwrap() + bin_size).num_minutes() + 15};
@@ -135,6 +134,7 @@ impl MyHistogram<Duration> {
 
         let data = self.bins.iter().map(|a| (*a+bin_size/2).num_minutes()).zip(self.count.iter().map(|x: &u32| *x));
 
+
         chart.draw_series(
             Histogram::vertical(&chart)
                 .style(plot_theme.histogram.clone())
@@ -143,7 +143,6 @@ impl MyHistogram<Duration> {
         )?;
 
         root.present()?;
-        println!("Result has been saved");
 
         Ok(())
 
@@ -154,12 +153,8 @@ impl MyHistogram<Duration> {
 // Per ora precisione di un'ora, meglio fare bins dedicati (sopratutto per i pasti e le cose da sera)
 impl MyHistogram<NaiveTime> {
     pub fn plot(&self, filename: &Path, plot_theme: &ThemeStr) -> Result<(),Box<dyn std::error::Error>> {
-        let root = BitMapBackend::new(filename, (400, 300)).into_drawing_area();
+        let root = BitMapBackend::new(filename, (600, 450)).into_drawing_area();
         root.fill(&plot_theme.background)?;
-        println!("{:?}", self.bins);
-        println!("{:?}", self.count);
-
-
 
         let bins_h: Vec<u32> = self.bins.iter().map(|a| a.hour()).collect();
         let x_range = std::ops::Range {
@@ -194,7 +189,6 @@ impl MyHistogram<NaiveTime> {
         )?;
 
         root.present()?;
-        println!("Result has been saved");
 
         Ok(())
 
@@ -246,7 +240,6 @@ impl Tchart {
         let non_zero_days = dur_ax.iter().cloned().filter(|a| a.num_minutes()>0).collect();
         let [median_in_day, mean_in_day, std_in_day] = chart_stats(&non_zero_days);
         let [median, mean, std] = chart_stats(&dur_ax);
-        println!("{:?}",dur_ax);
         Tchart{
             dates: date_ax,
             durations: dur_ax,
@@ -261,7 +254,7 @@ impl Tchart {
     }
 
     pub fn plot(&self, filename: &Path, plot_theme: &ThemeStr) -> Result<(),Box<dyn std::error::Error>> {
-        let root = BitMapBackend::new(filename, (800, 300)).into_drawing_area();
+        let root = BitMapBackend::new(filename, (1200, 450)).into_drawing_area();
         root.fill(&plot_theme.background)?;
 
         let x_range = std::ops::Range {
@@ -291,19 +284,18 @@ impl Tchart {
             .x_desc("Days")
             .axis_desc_style(("sans-serif", 15, &plot_theme.label))
             .axis_style(WHITE)
+            .bold_line_style(WHITE)
+            .light_line_style(WHITE)
             .label_style(("sans-serif", 15, &plot_theme.label))
             .draw()?;
 
         let data =self.dates.iter().zip(self.durations.iter());
-
-
 
         chart.draw_series(
             LineSeries::new(data.map(|(a,b)| (*a,*b)), plot_theme.tchart_line.clone())
         )?;
 
         root.present()?;
-        println!("Result has been saved");
 
         Ok(())
 
@@ -333,12 +325,6 @@ pub struct TagAn {
     pub last: Vec<String>,
 }
 
-
-impl IntoPropertySource<TagAn> for TagAn {
-    fn into_source(self) -> PropertySource<TagAn> {
-        PropertySource::Value(self)
-    }
-}
 
 impl fmt::Display for TagAn {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {

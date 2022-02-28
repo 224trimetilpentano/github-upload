@@ -8,5 +8,5 @@ edition = "2018"
 
 [dependencies]
 chrono = "0.4"
-orbtk = "0.3.1-alpha3"
 plotters = "0.3.1"
+fltk = { version = "^1.2", features = ["fltk-bundled"] }

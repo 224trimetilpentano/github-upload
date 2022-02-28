@@ -2,7 +2,6 @@
 
 pub use crate::recs::*;
 use crate::engine::*;
-use orbtk::prelude::{PropertySource, IntoPropertySource};
 use std::io::Error;
 use std::fmt;
 use std::default::Default;
@@ -188,11 +187,6 @@ impl Default for WeekReport {
     }
 }
 
-impl IntoPropertySource<WeekReport> for WeekReport {
-    fn into_source(self) -> PropertySource<WeekReport> {
-        PropertySource::Value(self)
-    }
-}
 
 // Implement: focus search files based on current date
 /// Retrieve the last 7 days and nest them into a Vec of Vec<Rec>

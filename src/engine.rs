@@ -5,7 +5,11 @@
 // Documentation
 
 use crate::recs::*;
+use std::fmt;
+use std::cmp::Ordering;
+use std::default::Default;
 
+#[derive(Debug)]
 pub struct Query {
     pub days: Option<[NaiveDate; 2]>,
     pub h: Option<[NaiveTime; 2]>,
@@ -32,9 +36,6 @@ impl Query {
 }
 
 
-use std::fmt;
-use std::cmp::Ordering;
-use std::default::Default;
 
 
 /// Tagtime
