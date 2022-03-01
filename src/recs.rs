@@ -10,6 +10,7 @@ use std::io::{Error, ErrorKind};
 use std::fs::read_to_string;
 use std::fmt;
 pub use std::path::Path;
+use std::env;
 
 // Structs
 
@@ -77,8 +78,9 @@ fn display_datetimes_into_time(i: Option<NaiveDateTime>) -> String {
     format!("{:02}:{:02}", a.hour(), a.minute())
 }
 
-pub fn rec_folder() -> String {
-    String::from("C:\\Users\\bonal\\OneDrive\\Desktop\\RecordTime")
+pub fn rec_folder() -> Box<Path> {
+    let cd = env::current_dir().unwrap();
+    Box::<Path>::from(cd)
 }
 
 // Base functions
@@ -231,6 +233,7 @@ impl RecBuilder for Vec<Rec> {
     }
 
     fn from_folder(path: &Path) -> Result<Vec<Rec>, Error> {
+        println!("{:?}",path);
         let files = path.read_dir().expect("read_dir failed");
         let mut out = Vec::new();
         for entry in files {

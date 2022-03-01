@@ -36,8 +36,6 @@ impl Query {
 }
 
 
-
-
 /// Tagtime
 /// Struct useful for tag ordering based on time.
 /// Field 0: tag name (String)

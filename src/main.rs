@@ -14,6 +14,7 @@ use week_widgets::*;
 use search_widgets::*;
 use styles::*;
 use widget_generators::Mess;
+use recs::rec_folder;
 
 use fltk::{app, prelude::*,
     group,
@@ -24,7 +25,7 @@ use fltk::{app, prelude::*,
 
 fn main() {
     let a = app::App::default();
-    let window_icon = fltk::image::PngImage::load("C:\\Users\\bonal\\OneDrive\\Desktop\\Codice\\Rust\\rec\\hashtag_icon.png");
+    let window_icon = fltk::image::PngImage::load(rec_folder().join("hashtag_icon.png"));
     let mut wind = window::Window::new(0, 0, 1500, 775, "Rec");
     wind.set_icon(window_icon.ok());
     // Unico canale, ogni funzione delle tabs generano i widget e li passano in una closure,

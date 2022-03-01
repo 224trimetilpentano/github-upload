@@ -1,5 +1,4 @@
 use crate::day_report::*;
-use std::path::Path;
 use crate::engine::*;
 use crate::styles::*;
 use crate::widget_generators::*;
@@ -65,7 +64,7 @@ fn week_buttons(parent: &mut group::Pack, sender: &app::Sender<Mess>, style: &Th
 // Update dei giorni
 pub fn week_text(n_week: i64, row: &mut group::Flex, style: &Theme) {
     row.clear();
-    let week = WeekReport::new(Path::new(&rec_folder()),n_week).unwrap_or(WeekReport::default());
+    let week = WeekReport::new(&rec_folder().join("RecordTime"),n_week).unwrap_or(WeekReport::default());
     for i in 0..7 {
         if let Some(day)=&week.day_reports[i] {
             let txt = create_text_widget(&format!("{}",day), style);
@@ -82,7 +81,7 @@ pub fn week_text(n_week: i64, row: &mut group::Flex, style: &Theme) {
 // Chrono
 pub fn week_chrono(n_week: i64, row: &mut group::Flex, style: &Theme) {
     row.clear();
-    let inp = Vec::from_folder(Path::new(&rec_folder())).unwrap();
+    let inp = Vec::from_folder(&rec_folder()).unwrap();
     let last_week = retrieve_days(&inp, n_week);
     for i in 1..8 {
         if let Some(day)=&last_week[i] {

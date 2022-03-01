@@ -1,5 +1,4 @@
 use crate::day_report::*;
-use std::path::Path;
 use crate::styles::*;
 use crate::widget_generators::*;
 use std::io::Error;
@@ -10,10 +9,6 @@ use fltk::{app, prelude::*,
     input,
     group};
 
-static PATH_T_HIST: &'static str = "C:\\Users\\bonal\\OneDrive\\Desktop\\Codice\\Rust\\rec\\TEMP\\T_hist.png";
-static PATH_H_HIST: &'static str = "C:\\Users\\bonal\\OneDrive\\Desktop\\Codice\\Rust\\rec\\TEMP\\H_hist.png";
-static PATH_T_CHART: &'static str = "C:\\Users\\bonal\\OneDrive\\Desktop\\Codice\\Rust\\rec\\TEMP\\T_chart.png";
-static PATH_PLOT_ERROR: &'static str = "C:\\Users\\bonal\\OneDrive\\Desktop\\Codice\\Rust\\rec\\TEMP\\error.png";
 
 pub fn search_lay(theme: &'static Theme, s: &app::Sender<Mess>) -> Box<dyn FnMut(Mess)> {
     // Layout dei widget
@@ -50,17 +45,18 @@ pub fn search_lay(theme: &'static Theme, s: &app::Sender<Mess>) -> Box<dyn FnMut
                     let query = query_builder(&in_vec);
                     let (out_str, image_paths) = search_outputs(&query, &theme);
 
-                    let mut res_3row = group::Flex::new(650,100,800,700,"").column();
-                    res_2row.set_pad(70);
-                    let res_4row = group::Flex::new(650,100,800,350,"").row();
-                    create_image(&Path::new(image_paths[0]), [400,300]);
-                    create_image(&Path::new(image_paths[1]), [400,300]);
-                    res_4row.end();
-                    create_image(&Path::new(image_paths[2]), [800,300]);
-                    res_3row.end();
-                    res_col.add(&res_3row);
-                    res_3row.redraw();
-
+                    if image_paths {
+                        let mut res_3row = group::Flex::new(650,100,800,700,"").column();
+                        res_2row.set_pad(70);
+                        let res_4row = group::Flex::new(650,100,800,350,"").row();
+                        create_image(&rec_folder().join("TEMP\\T_hist.png"), [400,300]);
+                        create_image(&rec_folder().join("TEMP\\H_hist.png"), [400,300]);
+                        res_4row.end();
+                        create_image(&rec_folder().join("TEMP\\T_chart.png"), [800,300]);
+                        res_3row.end();
+                        res_col.add(&res_3row);
+                        res_3row.redraw();
+                    }
                     main_wid.set_value(&out_str[0]);
                     ranking_wid.set_value(&out_str[1]);
                     last_wid.set_value(&out_str[2]);
@@ -72,10 +68,10 @@ pub fn search_lay(theme: &'static Theme, s: &app::Sender<Mess>) -> Box<dyn FnMut
     Box::new(search_close)
 }
 
-fn search_outputs(query: &Query, theme: &Theme) -> (Vec<String>, [&'static str;3]) {
+fn search_outputs(query: &Query, theme: &Theme) -> (Vec<String>, bool) {
 
-
-    let tagan = TagAn::new(Path::new(&rec_folder()), &query, true);
+    println!("{:?}",&rec_folder());
+    let tagan = TagAn::new(&rec_folder().join("RecordTime"), &query, true);
 
     if let Ok(tagan) = tagan {
         let mut main_str = String::from(format!("{}",tagan));
@@ -89,15 +85,15 @@ fn search_outputs(query: &Query, theme: &Theme) -> (Vec<String>, [&'static str;3
 
         let plot_theme = theme.get_plot();
         if tagan.n_rec != 1 {
-            tagan.t_stats.plot(&Path::new(PATH_T_HIST), &plot_theme).unwrap_or_else(|_| println!("Something went wrong"));
-            tagan.h_stats.plot(&Path::new(PATH_H_HIST), &plot_theme).unwrap_or_else(|_| println!("Something went wrong"));
-            tagan.t_chart.plot(&Path::new(PATH_T_CHART), &plot_theme).unwrap_or_else(|_| println!("Something went wrong"));
-            (vec![main_str, ranking, last], [PATH_T_HIST, PATH_H_HIST, PATH_T_CHART])
+            tagan.t_stats.plot(&rec_folder().join("TEMP\\T_hist.png"), &plot_theme).unwrap_or_else(|_| println!("Something went wrong"));
+            tagan.h_stats.plot(&rec_folder().join("TEMP\\H_hist.png"), &plot_theme).unwrap_or_else(|_| println!("Something went wrong"));
+            tagan.t_chart.plot(&rec_folder().join("TEMP\\T_chart.png"), &plot_theme).unwrap_or_else(|_| println!("Something went wrong"));
+            (vec![main_str, ranking, last], true)
         } else {
-            (vec![main_str, ranking, last], [PATH_PLOT_ERROR;3])
+            (vec![main_str, ranking, last], false)
         }
     } else {
-        (vec![String::from(""); 3], [PATH_PLOT_ERROR;3])
+        (vec![String::from(""); 3], false)
     }
 }
 
