@@ -1,4 +1,4 @@
-// #![windows_subsystem = "windows"]
+#![windows_subsystem = "windows"]
 static THEME: Theme = Theme::Dark;
 
 mod recs;
