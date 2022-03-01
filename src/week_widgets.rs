@@ -6,54 +6,57 @@ use crate::widget_generators::*;
 use fltk::{app, prelude::*,
     group};
 
-pub fn week_lay(theme: &'static Theme, s: &app::Sender<Mess>) -> Box<dyn FnMut(Mess)>  {
+use super::{WIND_SIZE, THEME};
+
+pub fn week_lay(s: &app::Sender<Mess>) -> Box<dyn FnMut(Mess)>  {
     let mut n_week = 0;
     let mut chrono = false;
+    let wind_size = WIND_SIZE.clone();
     // Layout dei widget
-    let mut week_column = group::Pack::new(40,100,1400-20,900,"");
+    let mut week_column = group::Pack::new(40,100,wind_size.0-80,900,"");
     week_column.set_spacing(35);
-    to_default_style(&mut week_column, &theme);
+    to_default_style(&mut week_column, &THEME);
     week_column.end();
 
     let mut week_button_row = group::Pack::new(0,0,100,50,"").with_type(group::PackType::Horizontal);
-    week_button_row.set_spacing(500);
+    week_button_row.set_spacing((wind_size.0-80-3*100)/2);
     week_button_row.end();
     week_column.add(&week_button_row);
-    week_buttons(&mut week_button_row, s, &theme);
+    week_buttons(&mut week_button_row, s);
 
     let mut flexx = group::Flex::new(0,0,1400-20,900,"").row();
     flexx.end();
     week_column.add(&flexx);
 
     // Inizializzazione
-    week_text(n_week, &mut flexx, &theme);
+    week_text(n_week, &mut flexx);
 
     // Azioni dei messaggi
     let week_clos = move |msg| {
             match msg {
-                Mess::Prev => {n_week-=1; week_text(n_week, &mut flexx, &theme)},
-                Mess::Next => {n_week+=1; week_text(n_week, &mut flexx, &theme)},
+                Mess::Prev => {n_week-=1; week_text(n_week, &mut flexx)},
+                Mess::Next => {n_week+=1; week_text(n_week, &mut flexx)},
                 Mess::Chrono => {
                     if chrono {
-                        week_text(n_week, &mut flexx, &theme);
+                        week_text(n_week, &mut flexx);
                         chrono = false;
                     } else {
-                        week_chrono(n_week, &mut flexx, &theme);
+                        week_chrono(n_week, &mut flexx);
                         chrono = true;
                     }},
-                _ => {},
+                _ => {}
             }
         };
     Box::new(week_clos)
 }
 
 // Bottoni superiori
-fn week_buttons(parent: &mut group::Pack, sender: &app::Sender<Mess>, style: &Theme) {
-    let mut button_prev = create_button("Previous", style);
+fn week_buttons(parent: &mut group::Pack, sender: &app::Sender<Mess>) {
+    let mut button_prev = create_button("Previous");
     button_prev.emit(sender.clone(), Mess::Prev);
-    let mut button_chrono = create_button("Chrono", style);
+    let mut button_chrono = create_button("Chrono");
     button_chrono.emit(sender.clone(), Mess::Chrono);
-    let mut button_next = create_button("Next", style);
+    let mut button_next = create_button("Next");
     button_next.emit(sender.clone(), Mess::Next);
     parent.add(&button_prev);
     parent.add(&button_chrono);
@@ -62,36 +65,36 @@ fn week_buttons(parent: &mut group::Pack, sender: &app::Sender<Mess>, style: &Th
 }
 
 // Update dei giorni
-pub fn week_text(n_week: i64, row: &mut group::Flex, style: &Theme) {
+pub fn week_text(n_week: i64, row: &mut group::Flex) {
     row.clear();
     let week = WeekReport::new(&rec_folder().join("RecordTime"),n_week).unwrap_or(WeekReport::default());
     for i in 0..7 {
         if let Some(day)=&week.day_reports[i] {
-            let txt = create_text_widget(&format!("{}",day), style);
+            let txt = create_text_widget(&format!("{}",day));
             row.add(&txt);
         } else {
-            let txt = create_text_widget("No data", style);
+            let txt = create_text_widget("No data");
             row.add(&txt);
         }
     }
-    let txt = create_text_widget(&format!("{}",&week.tot_report), style);
+    let txt = create_text_widget(&format!("{}",&week.tot_report));
     row.add(&txt);
 }
 
 // Chrono
-pub fn week_chrono(n_week: i64, row: &mut group::Flex, style: &Theme) {
+pub fn week_chrono(n_week: i64, row: &mut group::Flex) {
     row.clear();
     let inp = Vec::from_folder(&rec_folder()).unwrap();
     let last_week = retrieve_days(&inp, n_week);
     for i in 1..8 {
         if let Some(day)=&last_week[i] {
-            let txt = create_text_widget(&day.display(), style);
+            let txt = create_text_widget(&day.display());
             row.add(&txt);
         } else {
-            let txt = create_text_widget("No data", style);
+            let txt = create_text_widget("No data");
             row.add(&txt);
         }
     }
-    let txt = create_text_widget("", style);
+    let txt = create_text_widget("");
     row.add(&txt);
 }

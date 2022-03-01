@@ -1,12 +1,13 @@
 use crate::styles::*;
 use std::path::Path;
 
-use fltk::{prelude::*,
-    enums::{FrameType, Event, LabelType},
+use fltk::{app, prelude::*,
+    enums::{FrameType, Event, LabelType, Align},
     button,
     input,
     text};
 
+use super::THEME;
 
 #[derive(Clone, Debug, Copy)]
 pub enum Mess {
@@ -17,13 +18,37 @@ pub enum Mess {
     Children,
 }
 
-pub fn create_button(label: &str, style: &Theme) -> button::Button {
+
+pub fn create_button(label: &str) -> button::Button {
         let mut button = button::Button::default().with_size(100,50).with_label(label);
-        to_button_style(&mut button, style);
+        to_button_style(&mut button, &THEME);
         button
 }
 
+pub fn create_toggle_button(label: &str, box_size: (i32,i32)) -> (fltk::group::Group, button::ToggleButton) {
+        let group = fltk::group::Group::default().with_size(box_size.0, box_size.1);
+        create_text_widget(label).with_pos(0,box_size.1/2).with_size(box_size.0/2,box_size.1/2);
+        let mut button = button::ToggleButton::default().with_size(box_size.0/4,20)
+                            .with_pos(box_size.0*3/4,box_size.1/2)
+                            .with_label("@+2circle")
+                            .with_align(Align::Inside | Align::Left | Align::Wrap);
+        group.end();
+        to_button_style(&mut button, &THEME);
+        button.set_selection_color(fltk::enums::Color::from_hex(0x000090));
+        button.handle(|t, event| {
+            if event==Event::Push {
+                if t.is_toggled() {
+                    t.set_align(Align::Inside | Align::Left | Align::Wrap);
 
+                } else {
+                    t.set_align(Align::Inside | Align::Right | Align::Wrap);
+                }
+            }
+            true
+        });
+
+        (group, button)
+}
 
 pub fn create_image(path: &Path, size: [i32; 2]) -> fltk::frame::Frame {
     let mut frame = fltk::frame::Frame::default().with_size(size[0], size[1]);
@@ -36,22 +61,22 @@ pub fn create_image(path: &Path, size: [i32; 2]) -> fltk::frame::Frame {
 
 }
 
-pub fn create_text_widget(text: &str, style: &Theme) -> text::TextDisplay {
+pub fn create_text_widget(text: &str) -> text::TextDisplay {
     let mut buf = text::TextBuffer::default();
     buf.set_text(text);
     let mut txt = text::TextDisplay::default();
     txt.set_buffer(buf);
     txt.wrap_mode(text::WrapMode::AtBounds,200);
-    to_default_style(&mut txt, style);
-    to_text_style(&mut txt, style);
+    to_default_style(&mut txt, &THEME);
+    to_text_style(&mut txt, &THEME);
     txt.set_frame(FrameType::FlatBox);
     txt
 }
 
-pub fn create_output(text: &str, style: &Theme) -> fltk::output::MultilineOutput {
+pub fn create_output(text: &str) -> fltk::output::MultilineOutput {
     let mut txt = fltk::output::MultilineOutput::default();
-    to_default_style(&mut txt, style);
-    to_output_style(&mut txt, style);
+    to_default_style(&mut txt, &THEME);
+    to_output_style(&mut txt, &THEME);
     txt.set_value(text);
     txt
 }
@@ -64,7 +89,7 @@ pub fn create_output(text: &str, style: &Theme) -> fltk::output::MultilineOutput
 //     }
 // }
 
-pub fn create_input(tooltip: &str, style: &Theme) -> input::Input {
+pub fn create_input(tooltip: &str) -> input::Input {
     let mut input = input::Input::default();
     input.set_value(tooltip);
     input.set_label(tooltip);
@@ -77,6 +102,6 @@ pub fn create_input(tooltip: &str, style: &Theme) -> input::Input {
         }
         }
     );
-    to_input_style(&mut input, style);
+    to_input_style(&mut input, &THEME);
     input
 }
