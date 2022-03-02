@@ -79,7 +79,7 @@ fn display_datetimes_into_time(i: Option<NaiveDateTime>) -> String {
 }
 
 pub fn rec_folder() -> Box<Path> {
-    let cd = env::current_dir().unwrap();
+    let cd = env::current_exe().unwrap();
     let cd = cd.ancestors().find(|i| i.ends_with("rec") & i.is_dir()).expect("Unable to find current directory").to_path_buf();
     println!("{:?}", cd);
     Box::<Path>::from(cd)
