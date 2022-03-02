@@ -10,6 +10,7 @@ use std::default::Default;
 #[derive(Debug, PartialEq, Clone)]
 pub struct DayReport {
     pub day: NaiveDate,
+    pub sleep: Option<Duration>,
     pub food: Option<Vec<String>>,
     pub bed: [NaiveTime; 2],
     pub ranking: Vec<Tagtime>,
@@ -19,7 +20,7 @@ pub struct DayReport {
 
 impl DayReport {
 
-    pub fn new(recs: &mut Vec<Rec>) -> Result<DayReport, Error> {
+    pub fn new(recs: &mut Vec<Rec>, sleep: Option<Duration>) -> Result<DayReport, Error> {
         let day = recs[0].h.ok_or(err_inp("Waking hour not found"))?.date();
         let bed = bed_time(recs)?;
         recs.flatten();
@@ -30,6 +31,7 @@ impl DayReport {
 
         Ok(DayReport {
             day,
+            sleep,
             food,
             bed,
             ranking,
@@ -70,6 +72,7 @@ impl Default for DayReport {
     fn default() -> Self {
         DayReport{
             day: chrono::offset::Local::today().naive_local(),
+            sleep: None,
             food: None,
             bed: [NaiveTime::from_hms(1,1,1),NaiveTime::from_hms(1,1,1)],
             ranking: Vec::<Tagtime>::new(),
@@ -96,12 +99,17 @@ pub fn disp_weekday(inp: &Weekday) -> String {
 impl fmt::Display for DayReport {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         writeln!(f, "{} {}\n", &self.day.format("%d/%m"), disp_weekday(&self.day.weekday()))?;
-        writeln!(f, "\n \n Woke up at: {:?} \nWent to sleep at: {:?}\n \n", &self.bed[0], &self.bed[1])?;
+        writeln!(f, "\n \nHours slept: {}",
+                    if let Some(hour)=&self.sleep
+                        {format!("{}", WrapDuration(*hour))} else {String::from("No data")})?;
+        writeln!(f, "Woke up at: {:?} \nWent to sleep at: {:?}\n \n", &self.bed[0], &self.bed[1])?;
+
         let food_str = &self.food.as_ref().or(Some(&vec!["No food recorded".to_string()])).unwrap()
                             .iter().fold(String::new(), |acc, x| acc + &return_string(x,15) + "\n    ");
         writeln!(f, "Food eaten:\n  {}", &food_str)?;
         let selfs = &self.selfs.as_ref().or(Some(&vec!["No selfs recorded".to_string()])).unwrap()
                             .iter().fold(String::new(), |acc, x| acc + x + "\n    ");
+
         writeln!(f, "Shower:   {}\n \n", if self.shower {"Yes"} else {"No"})?;
         writeln!(f, "Selfs:\n    {}", &selfs)?;
         let ranks = &self.ranking.iter().enumerate()
@@ -161,8 +169,9 @@ impl WeekReport {
         let mut last_week = retrieve_days(&inp, n_week);
         let sleep_hours = sleep_hours_week(&last_week);
 
-        let day_reports: Vec<Option<DayReport>> = last_week.iter_mut().skip(1).
-                                                    map(|a| day_builder(a)).collect::<Vec<Option<DayReport>>>();
+        let day_reports: Vec<Option<DayReport>> = last_week.iter_mut().skip(1)
+                                                    .zip(sleep_hours.iter())
+                                                    .map(move |(a, sleep)| day_builder(a, *sleep)).collect::<Vec<Option<DayReport>>>();
 
         let days: Vec<NaiveDate> = (1..8).map(|a| starting_day+Duration::days(a)).collect::<Vec<NaiveDate>>();
         let n_selfs= day_reports.iter().filter(|a| a.is_some()).filter(|a| a.as_ref().unwrap().selfs.is_some()).count();
@@ -223,10 +232,10 @@ fn sleep_hours_couple(inp: &[Option<Vec<Rec>>]) -> Option<Duration> {
 }
 
 /// Wrapper for DayReport::new(), used in WeekReport::new() for DayReport creation in line
-fn day_builder(inp: &mut Option<Vec<Rec>>) -> Option<DayReport> {
+fn day_builder(inp: &mut Option<Vec<Rec>>, sleep: Option<Duration>) -> Option<DayReport> {
     match inp.as_mut() {
         None => None,
-        Some(mut a) => match DayReport::new(&mut a){
+        Some(mut a) => match DayReport::new(&mut a, sleep){
             Ok(a) => Some(a),
             Err(b) => {
                 println!("Errore: {:?}",b);

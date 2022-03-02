@@ -18,6 +18,13 @@ pub fn to_button_style(widget: &mut impl WidgetExt, st: &Theme) {
     widget.set_frame(FrameType::RFlatBox);
 }
 
+pub fn to_scrollbar_style(sc: &mut fltk::valuator::Scrollbar, st: &Theme) {
+    sc.set_slider_frame(FrameType::FlatBox);
+    sc.set_color(enums::Color::from_hex(0x000050)); // Background of the bar
+    sc.set_label_color(enums::Color::from_hex(0x000050)); // Triangles on the extreme boxes
+    sc.set_selection_color(enums::Color::from_hex(st.get_text().color)); // Bar and extreme boxes
+}
+
 pub fn to_input_style<T: WidgetExt + InputExt>(widget: &mut T , st: &Theme) {
     widget.set_color(enums::Color::from_hex(0x000050));
     widget.set_selection_color(enums::Color::from_hex(st.get_text().color));

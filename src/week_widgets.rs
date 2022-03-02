@@ -13,7 +13,7 @@ pub fn week_lay(s: &app::Sender<Mess>) -> Box<dyn FnMut(Mess)>  {
     let mut chrono = false;
     let wind_size = WIND_SIZE.clone();
     // Layout dei widget
-    let mut week_column = group::Pack::new(40,100,wind_size.0-80,900,"");
+    let mut week_column = group::Pack::new(40,100,wind_size.0-80,700,"");
     week_column.set_spacing(35);
     to_default_style(&mut week_column, &THEME);
     week_column.end();
@@ -24,9 +24,12 @@ pub fn week_lay(s: &app::Sender<Mess>) -> Box<dyn FnMut(Mess)>  {
     week_column.add(&week_button_row);
     week_buttons(&mut week_button_row, s);
 
-    let mut flexx = group::Flex::new(0,0,1400-20,900,"").row();
+
+    let mut flexx = group::Flex::new(0,0,1400-20,700,"").row();
+    to_default_style(&mut flexx, &THEME);
     flexx.end();
-    week_column.add(&flexx);
+    let scroll = wrap_in_scroll(&flexx, (0,0,1400-20,580));
+    week_column.add(&scroll);
 
     // Inizializzazione
     week_text(n_week, &mut flexx);
@@ -84,7 +87,7 @@ pub fn week_text(n_week: i64, row: &mut group::Flex) {
 // Chrono
 pub fn week_chrono(n_week: i64, row: &mut group::Flex) {
     row.clear();
-    let inp = Vec::from_folder(&rec_folder()).unwrap();
+    let inp = Vec::from_folder(&rec_folder().join("RecordTime")).unwrap();
     let last_week = retrieve_days(&inp, n_week);
     for i in 1..8 {
         if let Some(day)=&last_week[i] {

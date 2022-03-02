@@ -2,6 +2,7 @@ use crate::day_report::*;
 use crate::widget_generators::*;
 use std::io::Error;
 use crate::tag_search::*;
+use crate::styles::*;
 
 use fltk::{app, prelude::*,
     // enums::{FrameType, Align},
@@ -28,17 +29,21 @@ pub fn search_lay(s: &app::Sender<Mess>) -> Box<dyn FnMut(Mess)> {
 
     search_gen.add(&search_column);
 
-    let mut res_col = group::Group::new(250,100,1000,900,"").with_type(group::PackType::Horizontal);
+    let mut res_col = group::Scroll::new(250,100,1200,900,"").with_type(group::ScrollType::Vertical);
+    to_default_style(&mut res_col, &THEME);
     let res_1row = group::Flex::new(300,100,150,830,"").column();
+    // to_scrollbar_style(&mut res_col.scrollbar(), &THEME);
+    // res_col.scroll_to(0,100);
     let mut main_wid = create_output("");
     res_1row.end();
-
     let mut res_2row = group::Flex::new(450,100,150,830,"").column();
     let mut ranking_wid = create_output("");
     let mut last_wid = create_output("");
     res_2row.end();
 
     res_col.end();
+    // let mut bar = res_col.scrollbar().with_size(50,700).right_of(&res_col, 0);
+    // bar.redraw();
     search_gen.add(&res_col);
 
     let mut cut_children = true;
@@ -63,6 +68,7 @@ pub fn search_lay(s: &app::Sender<Mess>) -> Box<dyn FnMut(Mess)> {
                     main_wid.set_value(&out_str[0]);
                     ranking_wid.set_value(&out_str[1]);
                     last_wid.set_value(&out_str[2]);
+
 
                 },
                 Mess::Children => {

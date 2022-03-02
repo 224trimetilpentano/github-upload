@@ -1,8 +1,9 @@
 use crate::styles::*;
 use std::path::Path;
 
-use fltk::{app, prelude::*,
+use fltk::{prelude::*,
     enums::{FrameType, Event, LabelType, Align},
+    group,
     button,
     input,
     text};
@@ -73,12 +74,24 @@ pub fn create_text_widget(text: &str) -> text::TextDisplay {
     txt
 }
 
+
+
 pub fn create_output(text: &str) -> fltk::output::MultilineOutput {
     let mut txt = fltk::output::MultilineOutput::default();
     to_default_style(&mut txt, &THEME);
     to_output_style(&mut txt, &THEME);
     txt.set_value(text);
     txt
+}
+
+// Wrappa un widget in un gruppo scroll
+pub fn wrap_in_scroll<W: WidgetExt>(child: &W, pos_size: (i32,i32,i32,i32)) ->  group::Scroll {
+    let mut scroll = group::Scroll::new(pos_size.0,pos_size.1,pos_size.2,pos_size.3,"").with_type(group::ScrollType::Vertical);
+    scroll.end();
+    to_scrollbar_style(&mut scroll.scrollbar(), &THEME);
+    to_default_style(&mut scroll, &THEME);
+    scroll.add(child);
+    scroll
 }
 
 // pub fn update_buf<T: DisplayExt>(text: &str, txt: &mut T) {
