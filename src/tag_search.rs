@@ -27,8 +27,9 @@ pub struct Tstats {
 }
 
 impl Tstats {
-    pub fn plot(&self, filename: &Path, plot_theme: &ThemeStr) -> Result<(),Error> {
-        self.hist.plot(filename, plot_theme).or(Err(err_inp("Error during MyHistogram plotting")))?;
+
+    pub fn bmp_plot(&self, buffer: &mut [u8], dim: (u32,u32), plot_theme: &ThemeStr) -> Result<(),Error> {
+        self.hist.bmp_plot(buffer, dim, plot_theme).or(Err(err_inp("Error during MyHistogram plotting")))?;
         Ok(())
     }
 }
@@ -63,8 +64,9 @@ pub struct Hstats {
 }
 
 impl Hstats {
-    pub fn plot(&self, filename: &Path, plot_theme: &ThemeStr) -> Result<(),Error> {
-        self.hist.plot(filename, plot_theme).or(Err(err_inp("Error during MyHistogram plotting")))?;
+
+    pub fn bmp_plot(&self, buffer: &mut [u8], dim: (u32,u32), plot_theme: &ThemeStr) -> Result<(),Error> {
+        self.hist.bmp_plot(buffer, dim, plot_theme).or(Err(err_inp("Error during MyHistogram plotting")))?;
         Ok(())
     }
 }
@@ -104,8 +106,9 @@ impl U32Mod for u32 {
 
 
 impl MyHistogram<Duration> {
-    pub fn plot(&self, filename: &Path, plot_theme: &ThemeStr) -> Result<(),Box<dyn std::error::Error>> {
-        let root = BitMapBackend::new(filename, (400, 300)).into_drawing_area();
+
+    pub fn bmp_plot(&self, buffer: &mut [u8], dim: (u32,u32), plot_theme: &ThemeStr) -> Result<(),Box<dyn std::error::Error>> {
+        let root = BitMapBackend::with_buffer(buffer, dim).into_drawing_area();
         root.fill(&plot_theme.background)?;
 
         let bin_size = if self.bins.len()>1 {self.bins[1]-self.bins[0]} else {Duration::minutes(20)};
@@ -145,15 +148,14 @@ impl MyHistogram<Duration> {
         root.present()?;
 
         Ok(())
-
-
     }
+
 }
 
 // Per ora precisione di un'ora, meglio fare bins dedicati (sopratutto per i pasti e le cose da sera)
 impl MyHistogram<NaiveTime> {
-    pub fn plot(&self, filename: &Path, plot_theme: &ThemeStr) -> Result<(),Box<dyn std::error::Error>> {
-        let root = BitMapBackend::new(filename, (600, 450)).into_drawing_area();
+    pub fn bmp_plot(&self, buffer: &mut [u8], dim: (u32,u32), plot_theme: &ThemeStr) -> Result<(),Box<dyn std::error::Error>> {
+        let root = BitMapBackend::with_buffer(buffer, dim).into_drawing_area();
         root.fill(&plot_theme.background)?;
 
         let bins_h: Vec<u32> = self.bins.iter().map(|a| a.hour()).collect();
@@ -253,8 +255,8 @@ impl Tchart {
         }
     }
 
-    pub fn plot(&self, filename: &Path, plot_theme: &ThemeStr) -> Result<(),Box<dyn std::error::Error>> {
-        let root = BitMapBackend::new(filename, (1200, 450)).into_drawing_area();
+    pub fn bmp_plot(&self, buffer: &mut [u8], dim: (u32,u32), plot_theme: &ThemeStr) -> Result<(),Box<dyn std::error::Error>> {
+        let root = BitMapBackend::with_buffer(buffer, dim).into_drawing_area();
         root.fill(&plot_theme.background)?;
 
         let x_range = std::ops::Range {

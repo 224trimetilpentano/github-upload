@@ -51,12 +51,25 @@ pub fn create_toggle_button(label: &str, box_size: (i32,i32)) -> (fltk::group::G
         (group, button)
 }
 
-pub fn create_image(path: &Path, size: [i32; 2]) -> fltk::frame::Frame {
+pub fn create_image_from_file(path: &Path, size: [i32; 2]) -> fltk::frame::Frame {
     let mut frame = fltk::frame::Frame::default().with_size(size[0], size[1]);
     let image = fltk::image::PngImage::load(path);
     if let Ok(mut image) = image {
         image.scale(size[0],size[1],true,true);
         frame.set_image_scaled(Some(image));
+    }
+    frame
+
+}
+
+pub fn create_image_from_buffer(buffer: &[u8], size: [i32; 2]) -> fltk::frame::Frame {
+    let mut frame = fltk::frame::Frame::default().with_size(size[0], size[1]);
+    let image = fltk::image::RgbImage::new(buffer, size[0], size[1], fltk::enums::ColorDepth::Rgb8);
+    if let Ok(mut image) = image {
+        image.scale(size[0],size[1],true,true);
+        frame.set_image_scaled(Some(image));
+    } else {
+        println!("{:?}", image);
     }
     frame
 

@@ -45,22 +45,31 @@ pub fn search_lay(s: &app::Sender<Mess>) -> Box<dyn FnMut(Mess)> {
     // let mut bar = res_col.scrollbar().with_size(50,700).right_of(&res_col, 0);
     // bar.redraw();
     search_gen.add(&res_col);
-
+    let mut buf_t: Vec<u8> = Vec::<u8>::with_capacity(360000);
+    let mut buf_h: Vec<u8> = Vec::<u8>::with_capacity(360000);
+    let mut buf_ch: Vec<u8> = Vec::<u8>::with_capacity(720000);
+    unsafe {
+        buf_t.set_len(360000);
+        buf_h.set_len(360000);
+        buf_ch.set_len(720000);
+    }
+    let mut bufs = vec![buf_t, buf_h, buf_ch];
     let mut cut_children = true;
     let search_close = move |msg| {
             match msg {
                 Mess::Search => {
                     let query = query_builder(&in_vec);
-                    let (out_str, image_paths) = search_outputs(&query, cut_children);
+                    let (out_str, image_paths) = search_outputs(&query, cut_children, &mut bufs);
 
                     if image_paths {
                         let mut res_3row = group::Flex::new(650,100,800,700,"").column();
                         res_2row.set_pad(70);
                         let res_4row = group::Flex::new(650,100,800,350,"").row();
-                        create_image(&rec_folder().join("TEMP\\T_hist.png"), [400,300]);
-                        create_image(&rec_folder().join("TEMP\\H_hist.png"), [400,300]);
+                        // create_image(&rec_folder().join("TEMP\\T_hist.png"), [400,300]);
+                        create_image_from_buffer(&bufs[0], [400,300]);
+                        create_image_from_buffer(&bufs[1], [400,300]);
                         res_4row.end();
-                        create_image(&rec_folder().join("TEMP\\T_chart.png"), [800,300]);
+                        create_image_from_buffer(&bufs[2], [800,300]);
                         res_3row.end();
                         res_col.add(&res_3row);
                         res_3row.redraw();
@@ -81,9 +90,7 @@ pub fn search_lay(s: &app::Sender<Mess>) -> Box<dyn FnMut(Mess)> {
     Box::new(search_close)
 }
 
-fn search_outputs(query: &Query, cut_children: bool) -> (Vec<String>, bool) {
-
-    println!("{:?}",&rec_folder());
+fn search_outputs(query: &Query, cut_children: bool, bufs: &mut Vec<Vec<u8>>) -> (Vec<String>, bool) {
     let tagan = TagAn::new(&rec_folder().join("RecordTime"), &query, cut_children);
 
     if let Ok(tagan) = tagan {
@@ -98,9 +105,11 @@ fn search_outputs(query: &Query, cut_children: bool) -> (Vec<String>, bool) {
 
         let plot_theme = THEME.get_plot();
         if tagan.n_rec != 1 {
-            tagan.t_stats.plot(&rec_folder().join("TEMP\\T_hist.png"), &plot_theme).unwrap_or_else(|_| println!("Something went wrong"));
-            tagan.h_stats.plot(&rec_folder().join("TEMP\\H_hist.png"), &plot_theme).unwrap_or_else(|_| println!("Something went wrong"));
-            tagan.t_chart.plot(&rec_folder().join("TEMP\\T_chart.png"), &plot_theme).unwrap_or_else(|_| println!("Something went wrong"));
+            let dim_1 = (400,300);
+            let dim_2 = (800,300);
+            tagan.t_stats.bmp_plot(&mut bufs[0], dim_1, &plot_theme).unwrap_or_else(|_| println!("Something went wrong"));
+            tagan.h_stats.bmp_plot(&mut bufs[1], dim_1, &plot_theme).unwrap_or_else(|_| println!("Something went wrong"));
+            tagan.t_chart.bmp_plot(&mut bufs[2], dim_2, &plot_theme).unwrap_or_else(|_| println!("Something went wrong"));
             (vec![main_str, ranking, last], true)
         } else {
             (vec![main_str, ranking, last], false)
