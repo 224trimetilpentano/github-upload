@@ -1,6 +1,6 @@
 use  plotters::style::{ShapeStyle, RGBAColor, RGBColor};
 use  plotters::prelude::*;
-use fltk::{prelude::*, enums, enums::FrameType};
+use fltk::{prelude::*, enums, enums::{FrameType, Align}};
 
 // Da mettere anche le scritte nei plots
 
@@ -10,12 +10,20 @@ pub fn to_default_style(widget: &mut impl WidgetExt, st: &Theme) {
     widget.set_label_color(enums::Color::from_hex(st.get().label));
 }
 
+pub fn to_search_pack_style(widget: &mut impl WidgetExt, st: &Theme) {
+    widget.set_color(enums::Color::from_hex(st.get().background));
+    widget.set_label_color(enums::Color::from_hex(st.get().label));
+    widget.set_align(Align::TopLeft);
+    widget.set_label_size(20);
+}
+
+
 pub fn to_button_style(widget: &mut impl WidgetExt, st: &Theme) {
     widget.set_color(enums::Color::from_hex(0x000050));
     widget.set_selection_color(enums::Color::from_hex(0x000030));
     widget.set_label_color(enums::Color::from_hex(st.get().label));
     widget.clear_visible_focus();
-    widget.set_frame(FrameType::RFlatBox);
+    widget.set_frame(FrameType::FlatBox);
 }
 
 pub fn to_scrollbar_style(sc: &mut fltk::valuator::Scrollbar, st: &Theme) {

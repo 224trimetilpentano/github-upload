@@ -12,7 +12,7 @@ mod widget_generators;
 use week_widgets::*;
 use search_widgets::*;
 use styles::*;
-use widget_generators::Mess;
+use widget_generators::*;
 use recs::rec_folder;
 
 use fltk::{app, prelude::*,

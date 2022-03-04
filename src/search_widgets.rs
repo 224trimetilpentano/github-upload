@@ -5,7 +5,7 @@ use crate::tag_search::*;
 use crate::styles::*;
 
 use fltk::{app, prelude::*,
-    // enums::{FrameType, Align},
+    enums::{Align},
     input,
     group};
 
@@ -19,66 +19,99 @@ pub fn search_lay(s: &app::Sender<Mess>) -> Box<dyn FnMut(Mess)> {
     search_gen.end();
 
     let mut search_column = group::Pack::new(0,0,200,50,"");
-    let mut search_but = create_button("Search");
+    let mut search_but = create_button("Search",(200,50));
     search_but.emit(s.clone(), Mess::Search);
     search_column.set_spacing(20);
     let in_vec = search_inputs(&mut search_column);
     let (_ , mut child_but) = create_toggle_button("Include children",(200,50));
     child_but.emit(s.clone(), Mess::Children);
     search_column.end();
-
     search_gen.add(&search_column);
 
-    let mut res_col = group::Scroll::new(250,100,1200,900,"").with_type(group::ScrollType::Vertical);
-    to_default_style(&mut res_col, &THEME);
-    let res_1row = group::Flex::new(300,100,150,830,"").column();
-    // to_scrollbar_style(&mut res_col.scrollbar(), &THEME);
-    // res_col.scroll_to(0,100);
-    let mut main_wid = create_output("");
-    res_1row.end();
-    let mut res_2row = group::Flex::new(450,100,150,830,"").column();
-    let mut ranking_wid = create_output("");
-    let mut last_wid = create_output("");
-    res_2row.end();
-
-    res_col.end();
-    // let mut bar = res_col.scrollbar().with_size(50,700).right_of(&res_col, 0);
-    // bar.redraw();
-    search_gen.add(&res_col);
-    let mut buf_t: Vec<u8> = Vec::<u8>::with_capacity(360000);
-    let mut buf_h: Vec<u8> = Vec::<u8>::with_capacity(360000);
-    let mut buf_ch: Vec<u8> = Vec::<u8>::with_capacity(720000);
-    unsafe {
-        buf_t.set_len(360000);
-        buf_h.set_len(360000);
-        buf_ch.set_len(720000);
-    }
-    let mut bufs = vec![buf_t, buf_h, buf_ch];
     let mut cut_children = true;
+
+
+// RESULTS
+    let mut res_col = group::Pack::new(0,0,1200,900,"");
+    to_default_style(&mut res_col, &THEME);
+    res_col.end();
+
+
+    spacer(&mut res_col);
+
+// H T analysis
+    let mut res_ht = group::Pack::new(0,20,1200,300,"").with_type(group::PackType::Horizontal);
+    to_search_pack_style(&mut res_ht, &THEME);
+    res_ht.set_label("Duration and hour analysis");
+    res_ht.set_spacing(10);
+    res_ht.end();
+    res_col.add(&res_ht);
+
+    let mut ht_flex = group::Flex::new(0,20,300,300,"");
+    let mut main_wid = create_output("");
+    let mut ranking_wid = create_output("");
+    ht_flex.add(&main_wid);
+    ht_flex.add(&ranking_wid);
+    ht_flex.end();
+    res_ht.add(&ht_flex);
+
+    let mut img_t = MyFrame::new([400,300]);
+    res_ht.add(&img_t.frame);
+
+    let mut img_h = MyFrame::new([400,300]);
+    res_ht.add(&img_h.frame);
+
+// Daily analysis
+    spacer(&mut res_col);
+
+    let mut res_daily = group::Pack::new(0,0,1200,300,"").with_type(group::PackType::Horizontal);
+    to_search_pack_style(&mut res_daily, &THEME);
+    res_daily.set_label("Daily records");
+    res_daily.end();
+    res_col.add(&res_daily);
+
+    let mut daily_pack = group::Pack::new(0,0,300,300,"").with_type(group::PackType::Vertical);
+    daily_pack.end();
+    let (gr, counter) = create_counter((100,50), (1.0, 31.0), 2.0, "Window size:");
+    let mut daily_flex = group::Flex::new(0,0,300,300,"");
+    daily_flex.end();
+    let mut last_wid = create_output("");
+    spacer(&mut daily_pack);
+    daily_pack.add(&gr);
+    spacer(&mut daily_pack);
+    daily_pack.add(&daily_flex);
+    daily_flex.add(&last_wid);
+    res_daily.add(&daily_pack);
+
+    let mut img_daily = MyFrame::new([800,300]);
+    res_daily.add(&img_daily.frame);
+
+// General
+    res_col.hide();
+    let mut scroll = wrap_in_scroll(&res_col, (0,0,1100,700));
+    search_gen.add(&scroll);
+
     let search_close = move |msg| {
             match msg {
                 Mess::Search => {
                     let query = query_builder(&in_vec);
-                    let (out_str, image_paths) = search_outputs(&query, cut_children, &mut bufs);
+                    let tagan = TagAn::new(&rec_folder().join("RecordTime"), &query, cut_children, counter.label().parse::<usize>().unwrap());
+                    if let Ok(tagan) = tagan {
+                        res_col.show();
+                        let ht_str = out_ht(&tagan, &mut img_h.buffer, &mut img_t.buffer);
+                        img_t.update_frame();
+                        img_h.update_frame();
+                        main_wid.set_value(&ht_str[0]);
+                        ranking_wid.set_value(&ht_str[1]);
 
-                    if image_paths {
-                        let mut res_3row = group::Flex::new(650,100,800,700,"").column();
-                        res_2row.set_pad(70);
-                        let res_4row = group::Flex::new(650,100,800,350,"").row();
-                        // create_image(&rec_folder().join("TEMP\\T_hist.png"), [400,300]);
-                        create_image_from_buffer(&bufs[0], [400,300]);
-                        create_image_from_buffer(&bufs[1], [400,300]);
-                        res_4row.end();
-                        create_image_from_buffer(&bufs[2], [800,300]);
-                        res_3row.end();
-                        res_col.add(&res_3row);
-                        res_3row.redraw();
+
+                        let daily_str = out_daily(&tagan, &mut img_daily.buffer);
+                        img_daily.update_frame();
+                        last_wid.set_value(&daily_str[0]);
+
+                        // daily_flex.auto_layout();
+                        scroll.redraw();
                     }
-                    main_wid.set_value(&out_str[0]);
-                    ranking_wid.set_value(&out_str[1]);
-                    last_wid.set_value(&out_str[2]);
-
-
                 },
                 Mess::Children => {
                     cut_children = !cut_children;
@@ -90,35 +123,37 @@ pub fn search_lay(s: &app::Sender<Mess>) -> Box<dyn FnMut(Mess)> {
     Box::new(search_close)
 }
 
-fn search_outputs(query: &Query, cut_children: bool, bufs: &mut Vec<Vec<u8>>) -> (Vec<String>, bool) {
-    let tagan = TagAn::new(&rec_folder().join("RecordTime"), &query, cut_children);
+fn out_ht(tagan: &TagAn, buf_h: &mut Vec<u8>, buf_t: &mut Vec<u8>) -> Vec<String> {
+    let main_str = String::from(format!("{}",tagan));
 
-    if let Ok(tagan) = tagan {
-        let mut main_str = String::from(format!("{}",tagan));
-        let tchart_str = String::from(format!("{}",tagan.t_chart));
-        main_str = main_str + &tchart_str;
+    let mut ranking = tagan.rank_tags.iter().fold(String::new(), |acc, a| acc + format!("\n {}",a).as_str());
+    ranking = String::from("Tag ranking:\n") + &ranking;
 
-        let mut ranking = tagan.rank_tags.iter().fold(String::new(), |acc, a| acc + format!("\n {}",a).as_str());
-        ranking = String::from("Tag ranking:\n") + &ranking;
+    let plot_theme = THEME.get_plot();
+    let dim_1 = (400,300);
 
-        let last = tagan.last.iter().fold(String::from("Last records:\n"),|a, b| a + "\n" + b);
-
-        let plot_theme = THEME.get_plot();
-        if tagan.n_rec != 1 {
-            let dim_1 = (400,300);
-            let dim_2 = (800,300);
-            tagan.t_stats.bmp_plot(&mut bufs[0], dim_1, &plot_theme).unwrap_or_else(|_| println!("Something went wrong"));
-            tagan.h_stats.bmp_plot(&mut bufs[1], dim_1, &plot_theme).unwrap_or_else(|_| println!("Something went wrong"));
-            tagan.t_chart.bmp_plot(&mut bufs[2], dim_2, &plot_theme).unwrap_or_else(|_| println!("Something went wrong"));
-            (vec![main_str, ranking, last], true)
-        } else {
-            (vec![main_str, ranking, last], false)
-        }
-    } else {
-        (vec![String::from(""); 3], false)
-    }
+    tagan.t_stats.bmp_plot(buf_t, dim_1, &plot_theme).unwrap_or_else(|_| println!("Something went wrong"));
+    tagan.h_stats.bmp_plot(buf_h, dim_1, &plot_theme).unwrap_or_else(|_| println!("Something went wrong"));
+    vec![main_str, ranking]
 }
 
+fn out_daily(tagan: &TagAn, bufs: &mut Vec<u8>) -> Vec<String> {
+
+    let tchart_str = String::from(format!("{}",tagan.t_chart));
+
+    let last = tagan.last.iter().fold(String::from("Last records:\n"),|a, b| a + "\n" + b);
+
+    let plot_theme = THEME.get_plot();
+    if tagan.n_rec != 1 {
+        let dim_2 = (800,300);
+        tagan.t_chart.bmp_plot(bufs, dim_2, &plot_theme).unwrap_or_else(|_| println!("Something went wrong"));
+    }
+    vec![tchart_str, last]
+}
+
+fn spacer<P: GroupExt>(parent: &mut P) {
+    parent.add(&group::Tile::new(0,0,parent.w(),30,""));
+}
 
 fn search_inputs(parent: &mut group::Pack) -> Vec<input::Input> {
     let input_width = 200;

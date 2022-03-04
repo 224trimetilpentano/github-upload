@@ -121,7 +121,6 @@ impl MyHistogram<Duration> {
             .x_label_area_size(35)
             .y_label_area_size(40)
             .margin(5)
-            .caption("T Histogram", ("sans-serif", 30.0, &plot_theme.caption))
             .build_cartesian_2d(x_range, 0u32..self.count.iter().max().unwrap().times_f(1.2))?;
 
         chart
@@ -159,15 +158,15 @@ impl MyHistogram<NaiveTime> {
         root.fill(&plot_theme.background)?;
 
         let bins_h: Vec<u32> = self.bins.iter().map(|a| a.hour()).collect();
+        println!("{:?}",bins_h);
         let x_range = std::ops::Range {
-            start: bins_h[0] - 1,
+            start: std::cmp::max(bins_h[0], 1) - 1,
             end: bins_h.last().unwrap() + 1};
 
         let mut chart = ChartBuilder::on(&root)
             .x_label_area_size(35)
             .y_label_area_size(40)
             .margin(5)
-            .caption("H Histogram", ("sans-serif", 30.0, &plot_theme.caption))
             .build_cartesian_2d(x_range, 0u32..self.count.iter().max().unwrap().times_f(1.2))?;
 
         chart
@@ -229,15 +228,21 @@ impl Default for Tchart {
 }
 
 impl Tchart {
-    fn new(durs: &Vec<Duration>, dates: &Vec<NaiveDate>, range: &[NaiveDate; 2]) -> Tchart {
+    fn new(durs: &Vec<Duration>, dates: &Vec<NaiveDate>, range: &[NaiveDate; 2], window: usize) -> Tchart {
+
         let date_min = range[0].clone();
         let date_max = range[1].clone();
-        let date_ax: Vec<NaiveDate> = date_min.iter_days().take_while(|a| *a<=date_max).collect();
+        let mut date_ax: Vec<NaiveDate> = date_min.iter_days().take_while(|a| *a<=date_max).collect();
         let n = date_ax.len();
         let mut dur_ax = vec![Duration::zero(); n];
         for (count, i) in dates.iter().enumerate() {
             let eureka = date_ax.iter().enumerate().find(|(_bucket,value)| value==&i).unwrap().0;
             dur_ax[eureka] = dur_ax[eureka] + durs[count];
+        }
+        if window > 0 {
+            dur_ax = dur_ax.windows(window).map(|a| mean(a,(window) as i32)).collect();
+            date_ax = date_ax.split_off((window-1)/2);
+            date_ax.truncate(date_ax.len()-(window-1)/2);
         }
         let non_zero_days = dur_ax.iter().cloned().filter(|a| a.num_minutes()>0).collect();
         let [median_in_day, mean_in_day, std_in_day] = chart_stats(&non_zero_days);
@@ -271,7 +276,6 @@ impl Tchart {
             .x_label_area_size(35)
             .y_label_area_size(80)
             .margin(5)
-            .caption("T timeseries", ("sans-serif", 30.0, &plot_theme.caption))
             .build_cartesian_2d(x_range, y_range)?;
 
         fn  y_formatter<'r>(a:&'r Duration)-> String {
@@ -306,6 +310,11 @@ impl Tchart {
 
 }
 
+
+fn mean(arr: &[Duration], n: i32) -> Duration {
+    arr.iter().fold(Duration::zero(),|acc, &b| acc + b)/n
+}
+
 impl fmt::Display for Tchart {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         writeln!(f,"Every day stats:\n    median: {}",WrapDuration(self.median))?;
@@ -337,7 +346,7 @@ impl fmt::Display for TagAn {
 
 impl TagAn {
 
-    pub fn new(folder: &Path, query: &Query, cut: bool) -> Result<TagAn, Error> {
+    pub fn new(folder: &Path, query: &Query, cut: bool, window: usize) -> Result<TagAn, Error> {
         let mut found = search(folder, query)?;
         if cut {
             found.cut_children();
@@ -345,9 +354,10 @@ impl TagAn {
         let n_rec = found.len();
         let last = found.iter().rev().take(5).cloned().map(|a| a.description.unwrap_or(String::from(""))).collect();
         let (mut durs, times, dates) = get_t_h_d(&found);
-        let t_chart = Tchart::new(&durs, &dates, &query.days.unwrap());
-        let (t_stats, h_stats) =  ht_new(&mut durs, &times);
         let rank_tags = found.get_tagtimes().iter().take(10).cloned().collect();
+        let t_chart = Tchart::new(&durs, &dates, &query.days.unwrap(), window);
+
+        let (t_stats, h_stats) =  ht_new(&mut durs, &times);
 
         Ok(TagAn {
             n_rec,

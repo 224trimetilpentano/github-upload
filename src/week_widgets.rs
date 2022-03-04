@@ -55,11 +55,11 @@ pub fn week_lay(s: &app::Sender<Mess>) -> Box<dyn FnMut(Mess)>  {
 
 // Bottoni superiori
 fn week_buttons(parent: &mut group::Pack, sender: &app::Sender<Mess>) {
-    let mut button_prev = create_button("Previous");
+    let mut button_prev = create_button("Previous",(100,50));
     button_prev.emit(sender.clone(), Mess::Prev);
-    let mut button_chrono = create_button("Chrono");
+    let mut button_chrono = create_button("Chrono",(100,50));
     button_chrono.emit(sender.clone(), Mess::Chrono);
-    let mut button_next = create_button("Next");
+    let mut button_next = create_button("Next",(100,50));
     button_next.emit(sender.clone(), Mess::Next);
     parent.add(&button_prev);
     parent.add(&button_chrono);
