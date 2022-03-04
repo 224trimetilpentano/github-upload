@@ -141,22 +141,25 @@ pub struct MyFrame {
     pub frame: fltk::frame::Frame,
     pub buffer: Vec<u8>,
     pub size: [i32;2],
+    pub mult: i32,
 }
 
 impl MyFrame {
-    pub fn new(size: [i32;2]) -> MyFrame {
+    pub fn new(size: [i32;2], mult: i32) -> MyFrame {
         let frame = fltk::frame::Frame::default().with_size(size[0], size[1]);
-        let mut buf: Vec<u8> = Vec::<u8>::with_capacity((size[0]*size[1]*3) as usize);
-        unsafe { buf.set_len((size[0]*size[1]*3) as usize); buf.set_len((size[0]*size[1]*3) as usize);}
+        let buffer_size = (size[0]*size[1]*3*mult*mult) as usize;
+        let mut buf: Vec<u8> = Vec::<u8>::with_capacity(buffer_size);
+        unsafe { buf.set_len(buffer_size); buf.set_len(buffer_size);}
         MyFrame {
             frame,
             buffer: buf,
             size,
+            mult,
         }
     }
 
     pub fn update_frame(&mut self) {
-        let image = fltk::image::RgbImage::new(&self.buffer, self.size[0], self.size[1], fltk::enums::ColorDepth::Rgb8);
+        let image = fltk::image::RgbImage::new(&self.buffer, self.size[0] * self.mult, self.size[1] * self.mult, fltk::enums::ColorDepth::Rgb8);
         if let Ok(mut image) = image {
             image.scale(self.size[0],self.size[1],true,true);
             self.frame.set_image_scaled(Some(image));

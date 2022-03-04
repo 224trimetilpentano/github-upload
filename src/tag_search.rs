@@ -129,9 +129,9 @@ impl MyHistogram<Duration> {
             .bold_line_style(&WHITE.mix(0.3))
             .y_desc("Count")
             .x_desc("Minutes")
-            .axis_desc_style(("sans-serif", 15, &plot_theme.label))
+            .axis_desc_style(("sans-serif", 30, &plot_theme.label))
             .axis_style(WHITE)
-            .label_style(("sans-serif", 15, &plot_theme.label))
+            .label_style(("sans-serif", 30, &plot_theme.label))
             .draw()?;
 
         let data = self.bins.iter().map(|a| (*a+bin_size/2).num_minutes()).zip(self.count.iter().map(|x: &u32| *x));
@@ -175,9 +175,9 @@ impl MyHistogram<NaiveTime> {
             .bold_line_style(&WHITE.mix(0.3))
             .y_desc("Count")
             .x_desc("Hour")
-            .axis_desc_style(("sans-serif", 15, &plot_theme.label))
+            .axis_desc_style(("sans-serif", 30, &plot_theme.label))
             .axis_style(WHITE)
-            .label_style(("sans-serif", 15, &plot_theme.label))
+            .label_style(("sans-serif", 30, &plot_theme.label))
             .draw()?;
 
         let data = bins_h.iter().map(|a: &u32| *a).zip(self.count.iter().map(|x: &u32| *x));
@@ -288,11 +288,11 @@ impl Tchart {
             .y_desc("Duration")
             .y_label_formatter(&y_formatter)
             .x_desc("Days")
-            .axis_desc_style(("sans-serif", 15, &plot_theme.label))
+            .axis_desc_style(("sans-serif", 30, &plot_theme.label))
             .axis_style(WHITE)
             .bold_line_style(WHITE)
             .light_line_style(WHITE)
-            .label_style(("sans-serif", 15, &plot_theme.label))
+            .label_style(("sans-serif", 30, &plot_theme.label))
             .draw()?;
 
         let data =self.dates.iter().zip(self.durations.iter());

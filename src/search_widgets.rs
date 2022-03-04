@@ -55,10 +55,10 @@ pub fn search_lay(s: &app::Sender<Mess>) -> Box<dyn FnMut(Mess)> {
     ht_flex.end();
     res_ht.add(&ht_flex);
 
-    let mut img_t = MyFrame::new([400,300]);
+    let mut img_t = MyFrame::new([400,300], 2);
     res_ht.add(&img_t.frame);
 
-    let mut img_h = MyFrame::new([400,300]);
+    let mut img_h = MyFrame::new([400,300], 2);
     res_ht.add(&img_h.frame);
 
 // Daily analysis
@@ -83,7 +83,7 @@ pub fn search_lay(s: &app::Sender<Mess>) -> Box<dyn FnMut(Mess)> {
     daily_flex.add(&last_wid);
     res_daily.add(&daily_pack);
 
-    let mut img_daily = MyFrame::new([800,300]);
+    let mut img_daily = MyFrame::new([800,300], 2);
     res_daily.add(&img_daily.frame);
 
 // General
@@ -130,7 +130,7 @@ fn out_ht(tagan: &TagAn, buf_h: &mut Vec<u8>, buf_t: &mut Vec<u8>) -> Vec<String
     ranking = String::from("Tag ranking:\n") + &ranking;
 
     let plot_theme = THEME.get_plot();
-    let dim_1 = (400,300);
+    let dim_1 = (800,600);
 
     tagan.t_stats.bmp_plot(buf_t, dim_1, &plot_theme).unwrap_or_else(|_| println!("Something went wrong"));
     tagan.h_stats.bmp_plot(buf_h, dim_1, &plot_theme).unwrap_or_else(|_| println!("Something went wrong"));
@@ -145,7 +145,7 @@ fn out_daily(tagan: &TagAn, bufs: &mut Vec<u8>) -> Vec<String> {
 
     let plot_theme = THEME.get_plot();
     if tagan.n_rec != 1 {
-        let dim_2 = (800,300);
+        let dim_2 = (1600,600);
         tagan.t_chart.bmp_plot(bufs, dim_2, &plot_theme).unwrap_or_else(|_| println!("Something went wrong"));
     }
     vec![tchart_str, last]
